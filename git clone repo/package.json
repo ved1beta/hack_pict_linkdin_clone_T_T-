@@ -1,0 +1,9 @@
+{
+  "dependencies": {
+    "@azure/storage-blob": "^12.29.1",
+    "@clerk/nextjs": "^6.35.5"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.1"
+  }
+}
