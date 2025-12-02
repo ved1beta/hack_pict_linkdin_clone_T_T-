@@ -1,124 +1,136 @@
 "use client";
 
-import createPostAction from "@/actions/createPostAction";
 import { useUser } from "@clerk/nextjs";
-import { useRef, useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { Button } from "./ui/button";
 import { ImageIcon, XIcon } from "lucide-react";
+import { useRef, useState } from "react";
+import createPostAction from "@/actions/createPostAction";
 import { toast } from "sonner";
 
 function PostForm() {
   const ref = useRef<HTMLFormElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [preview, setPreview] = useState<string | null>(null);
-  const { user, isSignedIn, isLoaded } = useUser();
+  const { user } = useUser();
 
-  const handlePostAction = async (formData: FormData): Promise<void> => {
+  const [preview, setPreview] = useState<string | null>(null);
+
+  const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setPreview(URL.createObjectURL(file));
+    }
+  };
+
+  const handlePostAction = async (formData: FormData) => {
     const formDataCopy = formData;
     ref.current?.reset();
 
     const text = formDataCopy.get("postInput") as string;
 
-    if (!text) {
-      throw new Error("You must provide a post input");
+    if (!text.trim()) {
+      toast.error("Please write something before posting!");
+      return;
     }
 
     setPreview(null);
 
     try {
       await createPostAction(formDataCopy);
+      toast.success("Post created successfully! 🎉");
     } catch (error) {
-      console.error(`Error creating post: ${error}`);
-
-      // Display toast
-    }
-  };
-
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setPreview(URL.createObjectURL(file));
+      console.error("Error creating post:", error);
+      toast.error("Failed to create post. Please try again.");
     }
   };
 
   return (
-    <div className="mb-2">
+    <div className="card-modern p-5 space-y-4">
       <form
         ref={ref}
         action={(formData) => {
-          const promise = handlePostAction(formData);
-          toast.promise(promise, {
-            loading: "Creating post...",
-            success: "Post created!",
-            error: (e) => "Error creating post: " + e.message,
-          });
+          handlePostAction(formData);
         }}
-        className="p-3 bg-white rounded-lg border"
+        className="space-y-4"
       >
-        <div className="flex items-center space-x-2">
-          <Avatar>
+        {/* Input Section */}
+        <div className="flex items-start space-x-3">
+          <Avatar className="h-12 w-12 ring-2 ring-primary/20">
             <AvatarImage src={user?.imageUrl} />
-            <AvatarFallback>
+            <AvatarFallback className="bg-gradient-to-br from-primary to-accent text-white font-semibold">
               {user?.firstName?.charAt(0)}
               {user?.lastName?.charAt(0)}
             </AvatarFallback>
           </Avatar>
 
-          <input
-            type="text"
-            name="postInput"
-            placeholder="Start writing a post..."
-            className="flex-1 outline-none rounded-full py-3 px-4 border"
-          />
-
-          {/* add input file selector for images only */}
-          <input
-            ref={fileInputRef}
-            type="file"
-            name="image"
-            accept="image/*"
-            hidden
-            onChange={handleImageChange}
-          />
-
-          <button type="submit" hidden>
-            Post
-          </button>
+          <div className="flex-1">
+            <textarea
+              name="postInput"
+              placeholder="What's on your mind?"
+              className="w-full bg-secondary border border-border rounded-2xl px-4 py-3
+                       focus:ring-2 focus:ring-primary focus:border-transparent
+                       transition-all duration-200 outline-none resize-none
+                       min-h-[80px] text-foreground placeholder:text-muted-foreground"
+            />
+          </div>
         </div>
 
+        {/* Image Preview */}
         {preview && (
-          <div className="mt-2">
-            <img src={preview} alt="Preview" className="w-full object-cover" />
+          <div className="relative">
+            <img
+              src={preview}
+              alt="Preview"
+              className="w-full rounded-xl max-h-96 object-cover border border-border"
+            />
+            <Button
+              type="button"
+              variant="secondary"
+              size="icon"
+              className="absolute top-2 right-2 rounded-full"
+              onClick={() => {
+                setPreview(null);
+                if (fileInputRef.current) {
+                  fileInputRef.current.value = "";
+                }
+              }}
+            >
+              <XIcon className="h-4 w-4" />
+            </Button>
           </div>
         )}
 
-        <div className="flex justify-end mt-2">
-          <Button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            variant={preview ? "secondary" : "outline"}
-          >
-            <ImageIcon className="mr-2" size={16} color="currentColor" />
-            {preview ? "Change" : "Add"} image
-          </Button>
-
-          {/* add a remove button */}
-          {preview && (
+        {/* Actions */}
+        <div className="flex items-center justify-between pt-2 border-t border-border">
+          <div className="flex items-center space-x-2">
+            <input
+              ref={fileInputRef}
+              type="file"
+              name="image"
+              accept="image/*"
+              hidden
+              onChange={handleImageChange}
+            />
             <Button
               type="button"
-              onClick={() => setPreview(null)}
-              variant="outline"
-              className="ml-2"
+              variant="ghost"
+              size="sm"
+              className="text-muted-foreground hover:text-primary hover:bg-primary/10"
+              onClick={() => fileInputRef.current?.click()}
             >
-              <XIcon className="mr-2" size={16} color="currentColor" />
-              Remove image
+              <ImageIcon className="h-5 w-5 mr-2" />
+              Add Image
             </Button>
-          )}
+          </div>
+
+          <Button
+            type="submit"
+            className="btn-primary px-6"
+          >
+            Post
+          </Button>
         </div>
       </form>
-
-      <hr className="mt-2 border-gray-300" />
     </div>
   );
 }

@@ -1,33 +1,54 @@
+import { SignedIn } from "@clerk/nextjs";
 import PostFeed from "@/components/PostFeed";
 import PostForm from "@/components/PostForm";
 import UserInformation from "@/components/UserInformation";
 import Widget from "@/components/Widget";
-import { Post } from "@/mongodb/models/post";
-import { SignedIn } from "@clerk/nextjs";
 import connectDB from "@/mongodb/db";
+import { Post } from "@/mongodb/models/post";
 
-export const revalidate = 0;
-
-export default async function Home() {
+async function Home() {
   await connectDB();
+  
+  // Fetch posts from database
   const posts = await Post.getAllPosts();
 
   return (
-    <div className="grid grid-cols-8 mt-5 sm:px-5">
-      <section className="hidden md:inline md:col-span-2">
-        <UserInformation posts={posts} />
-      </section>
+    <div className="bg-background min-h-screen py-6">
+      <div className="max-w-7xl mx-auto px-4">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          {/* Left Sidebar - User Info */}
+          <aside className="lg:col-span-3 space-y-6">
+            <SignedIn>
+              <UserInformation posts={posts} />
+            </SignedIn>
+          </aside>
 
-      <section className="col-span-full md:col-span-6 xl:col-span-4 xl:max-w-xl mx-auto w-full">
-        <SignedIn>
-          <PostForm />
-        </SignedIn>
-        <PostFeed posts={posts} />
-      </section>
+          {/* Main Feed */}
+          <main className="lg:col-span-6 space-y-6">
+            <SignedIn>
+              <PostForm />
+            </SignedIn>
+            
+            {/* Posts Feed */}
+            {posts && posts.length > 0 ? (
+              <PostFeed posts={posts} />
+            ) : (
+              <div className="card-modern p-8 text-center">
+                <p className="text-muted-foreground">
+                  No posts yet. Be the first to share something! 🚀
+                </p>
+              </div>
+            )}
+          </main>
 
-      <section className="hidden xl:inline justify-center col-span-2">
-        <Widget />
-      </section>
+          {/* Right Sidebar - Widgets */}
+          <aside className="lg:col-span-3 space-y-6 hidden lg:block">
+            <Widget />
+          </aside>
+        </div>
+      </div>
     </div>
   );
 }
+
+export default Home;

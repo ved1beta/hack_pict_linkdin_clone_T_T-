@@ -1,72 +1,100 @@
 import { currentUser } from "@clerk/nextjs/server";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { IPostDocument } from "@/mongodb/models/post";
-import { Button } from "./ui/button";
-import { SignInButton, SignedIn, SignedOut } from "@clerk/nextjs";
+import { Badge } from "./ui/badge";
+import { MapPin, Briefcase } from "lucide-react";
 
-async function UserInformation({ posts }: { posts: IPostDocument[] }) {
+async function UserInformation({ posts }: { posts?: IPostDocument[] }) {
   const user = await currentUser();
 
-  const firstName = user?.firstName as string;
-  const lastName = user?.lastName as string;
-  const imageUrl = user?.imageUrl as string;
+  const firstName = user?.firstName;
+  const lastName = user?.lastName;
+  const imageUrl = user?.imageUrl;
 
-  const userPosts = posts?.filter((post) => post.user.userId === user?.id);
+  const userPosts = posts?.filter(
+    (post) => post.user.userId === user?.id
+  ) || [];
 
-  //  The flatMap() method creates a new array by calling a function for each element in the array and then flattening the result into a new array. It is identical to a map() followed by a flat() of depth 1, but flatMap() is often quite useful, as merging both into one method is slightly more efficient. The result of this flatMap() is a new array that contains all comments made by the current user across all posts. It's "flat" because it's a single-level array, not an array of arrays.
-  const userComments = posts.flatMap(
+  const userComments = posts?.flatMap(
     (post) =>
       post?.comments?.filter((comment) => comment.user.userId === user?.id) ||
       []
-  );
+  ) || [];
 
   return (
-    <div className="flex flex-col justify-center items-center bg-white mr-6 rounded-lg border py-4">
-      <Avatar className="h-16 w-16 mb-5">
-        {user?.id ? (
-          <AvatarImage src={imageUrl} />
-        ) : (
-          <AvatarImage src="https://github.com/shadcn.png" />
-        )}
-        <AvatarFallback>
-          {firstName?.charAt(0)}
-          {lastName?.charAt(0)}
-        </AvatarFallback>
-      </Avatar>
-
-      <SignedIn>
-        <div className="text-center">
-          <p className="font-semibold">
-            {firstName} {lastName}
-          </p>
-
-          <p className="text-xs">
-            @{firstName}
-            {lastName}-{user?.id?.slice(-4)}
-          </p>
+    <div className="card-modern p-6 space-y-6">
+      {/* Profile Header */}
+      <div className="relative">
+        {/* Background gradient */}
+        <div className="h-20 bg-gradient-to-r from-primary/20 to-accent/20 rounded-t-xl absolute -top-6 -left-6 -right-6" />
+        
+        {/* Avatar */}
+        <div className="relative pt-8 flex justify-center">
+          <Avatar className="h-20 w-20 ring-4 ring-background">
+            <AvatarImage src={imageUrl} />
+            <AvatarFallback className="bg-gradient-to-br from-primary to-accent text-white text-xl font-bold">
+              {firstName?.charAt(0)}
+              {lastName?.charAt(0)}
+            </AvatarFallback>
+          </Avatar>
         </div>
-      </SignedIn>
-
-      <SignedOut>
-        <div className="text-center space-y-2">
-          <p className="font-semibold">You are not signed in</p>
-
-          <Button asChild className="bg-[#0B63C4] text-white">
-            <SignInButton>Sign in</SignInButton>
-          </Button>
-        </div>
-      </SignedOut>
-
-      <hr className="w-full border-gray-200 my-5" />
-
-      <div className="flex justify-between w-full px-4 text-sm">
-        <p className="font-semibold text-gray-400">Posts</p>
-        <p className="text-blue-400">{userPosts.length}</p>
       </div>
 
-      <div className="flex justify-between w-full px-4 text-sm">
-        <p className="font-semibold text-gray-400">Comments</p>
-        <p className="text-blue-400">{userComments.length}</p>
+      {/* User Info */}
+      <div className="text-center space-y-2">
+        <h3 className="font-bold text-xl">
+          {firstName} {lastName}
+        </h3>
+        <p className="text-sm text-muted-foreground">
+          @{user?.username || `${firstName?.toLowerCase()}`}
+        </p>
+        
+        <div className="flex items-center justify-center space-x-2 text-sm text-muted-foreground">
+          <MapPin className="h-4 w-4" />
+          <span>Location</span>
+        </div>
+
+        <p className="text-sm text-muted-foreground pt-2">
+          UI, UX Designer and Web Developer
+        </p>
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-3 gap-4 pt-4 border-t border-border">
+        <div className="text-center">
+          <p className="text-2xl font-bold text-primary">{userPosts.length}</p>
+          <p className="text-xs text-muted-foreground">Posts</p>
+        </div>
+        <div className="text-center">
+          <p className="text-2xl font-bold text-accent">{userComments.length}</p>
+          <p className="text-xs text-muted-foreground">Comments</p>
+        </div>
+        <div className="text-center">
+          <p className="text-2xl font-bold text-primary">0</p>
+          <p className="text-xs text-muted-foreground">Teams</p>
+        </div>
+      </div>
+
+      {/* Quick Actions */}
+      <div className="space-y-2 pt-4 border-t border-border">
+        <div className="flex items-center justify-between text-sm hover:bg-secondary p-2 rounded-lg cursor-pointer transition-colors">
+          <span className="text-muted-foreground">Profile views</span>
+          <span className="font-semibold">124</span>
+        </div>
+        <div className="flex items-center justify-between text-sm hover:bg-secondary p-2 rounded-lg cursor-pointer transition-colors">
+          <span className="text-muted-foreground">Post impressions</span>
+          <span className="font-semibold">1.2k</span>
+        </div>
+      </div>
+
+      {/* Skills Preview */}
+      <div className="space-y-3 pt-4 border-t border-border">
+        <h4 className="text-sm font-semibold">Top Skills</h4>
+        <div className="flex flex-wrap gap-2">
+          <Badge variant="secondary">React</Badge>
+          <Badge variant="secondary">TypeScript</Badge>
+          <Badge variant="secondary">Node.js</Badge>
+        </div>
       </div>
     </div>
   );
