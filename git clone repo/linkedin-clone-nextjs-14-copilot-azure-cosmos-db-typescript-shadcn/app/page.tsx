@@ -7,6 +7,7 @@ import AccountTypeSelector from "@/components/AccountTypeSelector";
 import connectDB from "@/mongodb/db";
 import { Post } from "@/mongodb/models/post";
 import { User } from "@/mongodb/models/user";
+import { Job } from "@/mongodb/models/job";
 import { SignInButton } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 
@@ -36,15 +37,11 @@ async function Home() {
   }
   
   // Check if user has set account type
-  let dbUser = null;
-  if (clerkUser) {
-    dbUser = await User.findByUserId(clerkUser.id);
-  }
+  const dbUser = await User.findByUserId(clerkUser.id);
   
   // If user is signed in but hasn't set account type, show selector
-  const needsAccountSetup = clerkUser && (!dbUser || !dbUser.userType);
+  const needsAccountSetup = !dbUser || !dbUser.userType;
   
-  // Show account type selector if needed
   if (needsAccountSetup) {
     return (
       <AccountTypeSelector
@@ -57,7 +54,13 @@ async function Home() {
     );
   }
 
-  // Fetch posts from database
+  // If recruiter, show recruiter dashboard
+  if (dbUser.userType === "recruiter") {
+    const jobs = await Job.getJobsByRecruiter(clerkUser.id);
+    
+  }
+
+  // If student, show normal feed
   const posts = await Post.getAllPosts();
 
   return (
