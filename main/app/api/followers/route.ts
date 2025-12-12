@@ -1,6 +1,7 @@
 import connectDB from "@/mongodb/db";
 import { Followers } from "@/mongodb/models/followers";
 import { NextResponse } from "next/server";
+import { auth } from "@clerk/nextjs/server";
 
 // GET function is used to get all followers of a user
 export async function GET(request: Request) {
@@ -33,28 +34,38 @@ export async function GET(request: Request) {
 }
 
 export interface FollowerRequestBody {
-  followerUserId: string;
-  followingUserId: string;
+  targetUserId: string;
 }
 
 // POST function is used to add a follower to a user
 export async function POST(request: Request) {
-  const { followerUserId, followingUserId }: FollowerRequestBody =
-    await request.json();
   try {
+    const { userId: currentUserId } = auth();
+    
+    if (!currentUserId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { targetUserId }: FollowerRequestBody = await request.json();
+    
+    if (!targetUserId) {
+      return NextResponse.json({ error: "Target User ID required" }, { status: 400 });
+    }
+
     await connectDB();
 
-    const follow = await Followers.follow(followerUserId, followingUserId);
+    const follow = await Followers.follow(currentUserId, targetUserId);
 
     if (!follow) {
       return NextResponse.json(
         { error: "Follow action failed" },
-        { status: 404 }
+        { status: 400 }
       );
     }
 
     return NextResponse.json({ message: "Followed successfully" });
   } catch (error) {
+    console.error("Error following user:", error);
     return NextResponse.json(
       { error: "An error occurred while following" },
       { status: 500 }
@@ -64,22 +75,27 @@ export async function POST(request: Request) {
 
 // DELETE function is used to remove a follower from a user
 export async function DELETE(request: Request) {
-  const { followerUserId, followingUserId }: FollowerRequestBody =
-    await request.json();
-
   try {
-    await connectDB();
+    const { userId: currentUserId } = auth();
+    
+    if (!currentUserId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
-    if (!followerUserId || !followingUserId) {
+    const { targetUserId }: FollowerRequestBody = await request.json();
+
+    if (!targetUserId) {
       return NextResponse.json(
-        { error: "Follower ID or Following ID not provided" },
+        { error: "Target User ID not provided" },
         { status: 400 }
       );
     }
 
+    await connectDB();
+
     const follow = await Followers.findOne({
-      follower: followerUserId,
-      following: followingUserId,
+      follower: currentUserId,
+      following: targetUserId,
     });
 
     if (!follow) {

@@ -2,22 +2,29 @@ import { currentUser } from "@clerk/nextjs/server";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { IPostDocument } from "@/mongodb/models/post";
 import { Badge } from "./ui/badge";
-import { MapPin, Briefcase } from "lucide-react";
+import { MapPin, Briefcase, GraduationCap } from "lucide-react";
+import connectDB from "@/mongodb/db";
+import { User } from "@/mongodb/models/user";
+import EditProfileDialog from "./EditProfileDialog";
 
 async function UserInformation({ posts }: { posts?: IPostDocument[] }) {
   const user = await currentUser();
+  if (!user) return null;
 
-  const firstName = user?.firstName;
-  const lastName = user?.lastName;
-  const imageUrl = user?.imageUrl;
+  await connectDB();
+  const dbUser = await User.findByUserId(user.id);
+
+  const firstName = dbUser?.firstName || user.firstName;
+  const lastName = dbUser?.lastName || user.lastName;
+  const imageUrl = dbUser?.userImage || user.imageUrl;
 
   const userPosts = posts?.filter(
-    (post) => post.user.userId === user?.id
+    (post) => post.user.userId === user.id
   ) || [];
 
   const userComments = posts?.flatMap(
     (post) =>
-      post?.comments?.filter((comment) => comment.user.userId === user?.id) ||
+      post?.comments?.filter((comment) => comment.user.userId === user.id) ||
       []
   ) || [];
 
@@ -46,18 +53,51 @@ async function UserInformation({ posts }: { posts?: IPostDocument[] }) {
           {firstName} {lastName}
         </h3>
         <p className="text-sm text-muted-foreground">
-          @{user?.username || `${firstName?.toLowerCase()}`}
+          @{user.username || `${firstName?.toLowerCase()}`}
         </p>
         
-        <div className="flex items-center justify-center space-x-2 text-sm text-muted-foreground">
-          <MapPin className="h-4 w-4" />
-          <span>Location</span>
-        </div>
+        {dbUser?.bio && (
+          <p className="text-sm text-muted-foreground pt-2 line-clamp-3">
+            {dbUser.bio}
+          </p>
+        )}
 
-        <p className="text-sm text-muted-foreground pt-2">
-          UI, UX Designer and Web Developer
-        </p>
+        {dbUser?.location && (
+          <div className="flex items-center justify-center space-x-2 text-sm text-muted-foreground pt-2">
+            <MapPin className="h-4 w-4" />
+            <span>{dbUser.location}</span>
+          </div>
+        )}
       </div>
+
+      {/* Experience & Education Preview */}
+      {(dbUser?.experience || dbUser?.education) && (
+        <div className="space-y-3 pt-4 border-t border-border text-left">
+          {dbUser.experience && (
+            <div className="space-y-1">
+              <div className="flex items-center text-sm font-semibold">
+                <Briefcase className="h-4 w-4 mr-2 text-primary" />
+                Experience
+              </div>
+              <p className="text-xs text-muted-foreground line-clamp-2 pl-6 whitespace-pre-wrap">
+                {dbUser.experience}
+              </p>
+            </div>
+          )}
+          
+          {dbUser.education && (
+            <div className="space-y-1">
+              <div className="flex items-center text-sm font-semibold">
+                <GraduationCap className="h-4 w-4 mr-2 text-primary" />
+                Education
+              </div>
+              <p className="text-xs text-muted-foreground line-clamp-2 pl-6 whitespace-pre-wrap">
+                {dbUser.education}
+              </p>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Stats */}
       <div className="grid grid-cols-3 gap-4 pt-4 border-t border-border">
@@ -75,27 +115,22 @@ async function UserInformation({ posts }: { posts?: IPostDocument[] }) {
         </div>
       </div>
 
-      {/* Quick Actions */}
-      <div className="space-y-2 pt-4 border-t border-border">
-        <div className="flex items-center justify-between text-sm hover:bg-secondary p-2 rounded-lg cursor-pointer transition-colors">
-          <span className="text-muted-foreground">Profile views</span>
-          <span className="font-semibold">124</span>
-        </div>
-        <div className="flex items-center justify-between text-sm hover:bg-secondary p-2 rounded-lg cursor-pointer transition-colors">
-          <span className="text-muted-foreground">Post impressions</span>
-          <span className="font-semibold">1.2k</span>
-        </div>
-      </div>
-
       {/* Skills Preview */}
-      <div className="space-y-3 pt-4 border-t border-border">
-        <h4 className="text-sm font-semibold">Top Skills</h4>
-        <div className="flex flex-wrap gap-2">
-          <Badge variant="secondary">React</Badge>
-          <Badge variant="secondary">TypeScript</Badge>
-          <Badge variant="secondary">Node.js</Badge>
+      {dbUser?.skills && dbUser.skills.length > 0 && (
+        <div className="space-y-3 pt-4 border-t border-border">
+          <h4 className="text-sm font-semibold">Top Skills</h4>
+          <div className="flex flex-wrap gap-2">
+            {dbUser.skills.slice(0, 5).map((skill, i) => (
+              <Badge key={i} variant="secondary">{skill}</Badge>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
+
+      {/* Edit Profile Button */}
+      {dbUser && (
+        <EditProfileDialog user={JSON.parse(JSON.stringify(dbUser))} />
+      )}
     </div>
   );
 }

@@ -85,5 +85,9 @@ UserSchema.statics.createOrUpdateUser = async function (userData: Partial<IUser>
   return user;
 };
 
+UserSchema.statics.getAllUsers = async function () {
+  return await this.find().sort({ createdAt: -1 }).lean();
+};
+
 export const User: Model<IUserDocument> =
   models.User || mongoose.model<IUserDocument>("User", UserSchema);
