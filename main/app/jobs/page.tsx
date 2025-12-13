@@ -23,6 +23,7 @@ async function JobsPage() {
 
   // Fetch all open jobs
   const jobs = await Job.getAllJobs();
+  const serializedJobs = JSON.parse(JSON.stringify(jobs));
 
   return (
     <div className="bg-background min-h-screen py-6">
@@ -41,9 +42,9 @@ async function JobsPage() {
         </div>
 
         {/* Jobs Grid */}
-        {jobs && jobs.length > 0 ? (
+        {serializedJobs && serializedJobs.length > 0 ? (
           <div className="grid gap-6">
-            {jobs.map((job: any) => (
+            {serializedJobs.map((job: any) => (
               <JobCard key={job._id} job={job} currentUserId={clerkUser.id} />
             ))}
           </div>
