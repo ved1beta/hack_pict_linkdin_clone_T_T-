@@ -17,6 +17,23 @@ export interface IUser {
   skills?: string[];
   experience?: string;
   education?: string;
+  connections?: string[]; // Array of connected user IDs
+  codingProfiles?: {
+    leetcode?: {
+      username: string;
+      rating: number;
+      solved: number;
+      ranking: number;
+      lastUpdated?: Date;
+    };
+    codechef?: {
+      username: string;
+      rating: number;
+      stars: string;
+      ranking: number;
+      lastUpdated?: Date;
+    };
+  };
   createdAt: Date;
   updatedAt: Date;
 }
@@ -65,6 +82,30 @@ const UserSchema = new Schema<IUserDocument>(
     location: String,
     bio: String,
     experience: String,
+    
+    // Connections
+    connections: {
+      type: [String],
+      default: [],
+    },
+    
+    // Coding Profiles
+    codingProfiles: {
+      leetcode: {
+        username: { type: String, default: "" },
+        rating: { type: Number, default: 0 },
+        solved: { type: Number, default: 0 },
+        ranking: { type: Number, default: 0 },
+        lastUpdated: { type: Date },
+      },
+      codechef: {
+        username: { type: String, default: "" },
+        rating: { type: Number, default: 0 },
+        stars: { type: String, default: "" },
+        ranking: { type: Number, default: 0 },
+        lastUpdated: { type: Date },
+      },
+    },
   },
   {
     timestamps: true,

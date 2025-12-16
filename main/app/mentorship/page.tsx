@@ -1,0 +1,383 @@
+"use client";
+
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { 
+  GraduationCap, 
+  Sparkles, 
+  MessageCircle, 
+  Play,
+  X,
+  Loader2,
+  AlertCircle
+} from "lucide-react";
+import { toast } from "sonner";
+
+// Expanded categories
+const INTERESTS = [
+  "Web Development",
+  "Mobile Development",
+  "Data Science",
+  "Machine Learning",
+  "AI/ML",
+  "Cloud Computing",
+  "DevOps",
+  "Cybersecurity",
+  "Blockchain",
+  "Game Development",
+  "UI/UX Design",
+  "Digital Marketing",
+];
+
+const JOB_ROLES = [
+  "Frontend Developer",
+  "Backend Developer",
+  "Full Stack Developer",
+  "Mobile App Developer",
+  "Data Scientist",
+  "ML Engineer",
+  "DevOps Engineer",
+  "Cloud Architect",
+  "Security Engineer",
+  "Blockchain Developer",
+  "Game Developer",
+  "UI/UX Designer",
+  "Product Manager",
+  "Data Analyst",
+];
+
+// Complete skills database
+const SKILLS_DATABASE: { [key: string]: { [key: string]: string[] } } = {
+  "Web Development": {
+    "Frontend Developer": ["HTML", "CSS", "JavaScript", "React", "Vue.js", "TypeScript", "Tailwind CSS", "Webpack"],
+    "Backend Developer": ["Node.js", "Express.js", "Python", "Django", "PostgreSQL", "MongoDB", "REST API", "GraphQL"],
+    "Full Stack Developer": ["React", "Node.js", "Next.js", "TypeScript", "MongoDB", "PostgreSQL", "Docker", "AWS"],
+    "Product Manager": ["Agile", "Scrum", "Product Strategy", "User Stories", "Analytics", "A/B Testing"],
+  },
+  "Mobile Development": {
+    "Mobile App Developer": ["React Native", "Flutter", "Swift", "Kotlin", "Android Studio", "iOS Development", "Firebase", "Redux"],
+    "Full Stack Developer": ["React Native", "Node.js", "Firebase", "MongoDB", "REST API", "JWT Authentication"],
+    "Frontend Developer": ["React Native", "Flutter", "Mobile UI Design", "Redux", "State Management"],
+  },
+  "Data Science": {
+    "Data Scientist": ["Python", "Pandas", "NumPy", "Scikit-learn", "Matplotlib", "Jupyter", "Statistics", "SQL"],
+    "Data Analyst": ["Python", "SQL", "Excel", "Tableau", "Power BI", "Statistics", "Data Visualization", "R"],
+    "ML Engineer": ["Python", "TensorFlow", "PyTorch", "Scikit-learn", "Deep Learning", "NLP", "Computer Vision", "MLOps"],
+  },
+  "Machine Learning": {
+    "ML Engineer": ["TensorFlow", "PyTorch", "Keras", "Deep Learning", "NLP", "Computer Vision", "MLOps", "Feature Engineering"],
+    "Data Scientist": ["Python", "Machine Learning", "Statistical Analysis", "Feature Engineering", "Model Deployment", "A/B Testing"],
+    "Data Analyst": ["Python", "Machine Learning Basics", "Statistical Analysis", "Predictive Modeling", "Data Preprocessing"],
+  },
+  "AI/ML": {
+    "ML Engineer": ["TensorFlow", "PyTorch", "Neural Networks", "Deep Learning", "NLP", "Transformers", "LLMs", "GPT"],
+    "Data Scientist": ["Python", "Machine Learning", "Deep Learning", "Neural Networks", "AI Ethics", "Model Evaluation"],
+    "Backend Developer": ["Python", "TensorFlow", "FastAPI", "Model Deployment", "ML APIs", "Docker"],
+  },
+  "Cloud Computing": {
+    "Cloud Architect": ["AWS", "Azure", "Google Cloud", "Kubernetes", "Docker", "Terraform", "Cloud Security", "Microservices"],
+    "DevOps Engineer": ["AWS", "Docker", "Kubernetes", "CI/CD", "Jenkins", "Terraform", "Linux", "Monitoring"],
+    "Backend Developer": ["AWS", "Docker", "Microservices", "API Gateway", "Lambda Functions", "S3", "EC2"],
+    "Full Stack Developer": ["AWS", "Docker", "Kubernetes", "CI/CD", "Cloud Deployment", "Serverless"],
+  },
+  "DevOps": {
+    "DevOps Engineer": ["Docker", "Kubernetes", "Jenkins", "GitLab CI", "Terraform", "Ansible", "Linux", "AWS"],
+    "Cloud Architect": ["Docker", "Kubernetes", "Infrastructure as Code", "CI/CD", "Cloud Platforms", "Monitoring"],
+    "Backend Developer": ["Docker", "Git", "CI/CD", "Linux", "Bash Scripting", "Monitoring Tools"],
+  },
+  "Cybersecurity": {
+    "Security Engineer": ["Network Security", "Penetration Testing", "Cryptography", "SIEM", "Ethical Hacking", "Linux", "Firewall", "Compliance"],
+    "Cloud Architect": ["Cloud Security", "IAM", "Encryption", "Security Best Practices", "Compliance", "Threat Modeling"],
+    "Backend Developer": ["Web Security", "OWASP", "Authentication", "Encryption", "JWT", "SQL Injection Prevention"],
+  },
+  "Blockchain": {
+    "Blockchain Developer": ["Solidity", "Ethereum", "Web3.js", "Smart Contracts", "Hardhat", "Truffle", "DeFi", "NFT"],
+    "Full Stack Developer": ["Solidity", "React", "Web3.js", "MetaMask", "Smart Contracts", "Ethers.js"],
+  },
+  "Game Development": {
+    "Game Developer": ["Unity", "Unreal Engine", "C#", "C++", "3D Modeling", "Game Physics", "Blender", "Animation"],
+    "Frontend Developer": ["JavaScript", "Canvas API", "WebGL", "Three.js", "Game Logic", "Animation"],
+  },
+  "UI/UX Design": {
+    "UI/UX Designer": ["Figma", "Adobe XD", "Sketch", "Prototyping", "User Research", "Wireframing", "Design Systems", "Usability Testing"],
+    "Frontend Developer": ["Figma", "CSS", "Responsive Design", "Animation", "UI Libraries", "Design Principles"],
+    "Product Manager": ["User Research", "Wireframing", "Prototyping", "User Testing", "Design Thinking", "User Stories"],
+  },
+  "Digital Marketing": {
+    "Product Manager": ["SEO", "Google Analytics", "Marketing Strategy", "Content Marketing", "Social Media", "Growth Hacking"],
+    "Frontend Developer": ["SEO", "Google Analytics", "Performance Optimization", "Web Vitals", "Conversion Optimization"],
+  },
+};
+
+const MENTOR_PROFILES = [
+  {
+    name: "Sarah Chen",
+    title: "Senior Software Engineer",
+    experience: "10+ Years",
+    specialty: "Full Stack Development",
+    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah",
+  },
+  {
+    name: "Dr. James Wilson",
+    title: "AI Research Scientist",
+    experience: "5-10 Years",
+    specialty: "Machine Learning",
+    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=James",
+  },
+  {
+    name: "Emily Rodriguez",
+    title: "Product Manager",
+    experience: "2-5 Years",
+    specialty: "Career Guidance",
+    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Emily",
+  },
+];
+
+export default function MentorshipPage() {
+  const [interest, setInterest] = useState("Web Development");
+  const [jobRole, setJobRole] = useState("Frontend Developer");
+  const [skills, setSkills] = useState<string[]>([]);
+  const [selectedSkill, setSelectedSkill] = useState<string | null>(null);
+  const [videoId, setVideoId] = useState<string | null>(null);
+  const [isLoadingVideo, setIsLoadingVideo] = useState(false);
+
+  const getSkills = () => {
+    const skillSet = SKILLS_DATABASE[interest]?.[jobRole];
+    return skillSet || [];
+  };
+
+  const handleGetSkills = () => {
+    const recommendedSkills = getSkills();
+    
+    if (recommendedSkills.length === 0) {
+      toast.error("Invalid Combination", {
+        description: `No skills available for ${jobRole} in ${interest}. Try a different combination!`,
+      });
+      setSkills([]);
+      return;
+    }
+    
+    setSkills(recommendedSkills);
+    toast.success("Skills Generated!", {
+      description: `Found ${recommendedSkills.length} recommended skills for you.`,
+    });
+  };
+
+  const handleSkillClick = async (skill: string) => {
+    setSelectedSkill(skill);
+    setIsLoadingVideo(true);
+
+    try {
+      console.log("Fetching video for:", skill);
+      const response = await fetch(`/api/youtube/search?q=${encodeURIComponent(skill)}`);
+      
+      if (!response.ok) {
+        throw new Error("Failed to fetch video");
+      }
+
+      const data = await response.json();
+      console.log("YouTube API response:", data);
+      
+      if (data.videos && data.videos.length > 0) {
+        setVideoId(data.videos[0].id);
+        toast.success("Video loaded!");
+      } else {
+        throw new Error("No videos found");
+      }
+    } catch (error) {
+      console.error("Failed to load video:", error);
+      toast.error("Failed to load video", {
+        description: "Please try again or check your internet connection.",
+      });
+      setSelectedSkill(null);
+    } finally {
+      setIsLoadingVideo(false);
+    }
+  };
+
+  const closeVideo = () => {
+    setVideoId(null);
+    setSelectedSkill(null);
+  };
+
+  return (
+    <div className="bg-background min-h-screen py-6">
+      <div className="max-w-6xl mx-auto px-4 space-y-8">
+        {/* Header */}
+        <div className="text-center space-y-3">
+          <div className="flex items-center justify-center space-x-2">
+            <GraduationCap className="h-10 w-10 text-primary" />
+            <h1 className="text-4xl font-bold gradient-text">AI-Powered Mentorship</h1>
+          </div>
+          <p className="text-muted-foreground max-w-2xl mx-auto">
+            Get personalized skill recommendations and learn with curated video tutorials
+          </p>
+        </div>
+
+        {/* Skill Recommendation Engine */}
+        <div className="card-modern p-8 space-y-6">
+          <div className="flex items-center space-x-2 mb-4">
+            <Sparkles className="h-6 w-6 text-primary" />
+            <h2 className="text-2xl font-bold">Skill Recommendation Engine</h2>
+          </div>
+
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-semibold mb-2">Select Your Interest</label>
+              <select
+                value={interest}
+                onChange={(e) => {
+                  setInterest(e.target.value);
+                  setSkills([]);
+                  setVideoId(null);
+                }}
+                className="w-full p-3 bg-secondary border border-border rounded-lg focus:ring-2 focus:ring-primary outline-none"
+              >
+                {INTERESTS.map((int) => (
+                  <option key={int} value={int}>
+                    {int}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold mb-2">Select Job Role</label>
+              <select
+                value={jobRole}
+                onChange={(e) => {
+                  setJobRole(e.target.value);
+                  setSkills([]);
+                  setVideoId(null);
+                }}
+                className="w-full p-3 bg-secondary border border-border rounded-lg focus:ring-2 focus:ring-primary outline-none"
+              >
+                {JOB_ROLES.map((role) => (
+                  <option key={role} value={role}>
+                    {role}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <Button
+              onClick={handleGetSkills}
+              className="w-full btn-primary text-lg py-6"
+            >
+              <Sparkles className="mr-2 h-5 w-5" />
+              Get Recommended Skills
+            </Button>
+          </div>
+
+          {skills.length > 0 && (
+            <div className="pt-6 border-t border-border">
+              <div className="flex items-center space-x-2 mb-4">
+                <Sparkles className="h-5 w-5 text-primary" />
+                <h3 className="text-xl font-bold">Recommended Skills:</h3>
+              </div>
+              <div className="flex flex-wrap gap-3">
+                {skills.map((skill, index) => (
+                  <button
+                    key={index}
+                    onClick={() => handleSkillClick(skill)}
+                    className="group relative"
+                  >
+                    <Badge 
+                      variant="secondary" 
+                      className="text-sm px-4 py-2 cursor-pointer hover:bg-primary hover:text-white transition-all"
+                    >
+                      <Play className="h-3 w-3 mr-1 inline" />
+                      {skill}
+                    </Badge>
+                  </button>
+                ))}
+              </div>
+              <p className="text-xs text-muted-foreground mt-4 flex items-center gap-2">
+                <AlertCircle className="h-4 w-4" />
+                Click on any skill to watch a tutorial video
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* Video Player Modal */}
+        {videoId && !isLoadingVideo && (
+          <div className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
+            <div className="bg-background rounded-xl max-w-5xl w-full overflow-hidden shadow-2xl">
+              <div className="flex items-center justify-between p-4 border-b border-border bg-secondary">
+                <h3 className="text-xl font-bold flex items-center gap-2">
+                  <Play className="h-5 w-5 text-primary" />
+                  {selectedSkill} Tutorial
+                </h3>
+                <button
+                  onClick={closeVideo}
+                  className="p-2 hover:bg-background rounded-lg transition-colors"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+              <div className="aspect-video bg-black">
+                <iframe
+                  width="100%"
+                  height="100%"
+                  src={`https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0`}
+                  title="YouTube video player"
+                  frameBorder="0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  allowFullScreen
+                  className="w-full h-full"
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Loading Modal */}
+        {isLoadingVideo && (
+          <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center">
+            <div className="text-center space-y-4 bg-background p-8 rounded-xl">
+              <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto" />
+              <p className="text-foreground text-lg font-semibold">Loading video...</p>
+              <p className="text-sm text-muted-foreground">Finding the best tutorial for {selectedSkill}</p>
+            </div>
+          </div>
+        )}
+
+        {/* Available Mentors */}
+        <div className="card-modern p-8">
+          <div className="flex items-center space-x-2 mb-6">
+            <MessageCircle className="h-6 w-6 text-primary" />
+            <h2 className="text-2xl font-bold">Connect with Mentors</h2>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-6">
+            {MENTOR_PROFILES.map((mentor, index) => (
+              <div key={index} className="card-modern p-6 text-center space-y-4 hover:ring-2 hover:ring-primary transition-all">
+                <img
+                  src={mentor.avatar}
+                  alt={mentor.name}
+                  className="w-24 h-24 rounded-full mx-auto ring-4 ring-primary/20"
+                />
+                <div>
+                  <h3 className="font-bold text-lg">{mentor.name}</h3>
+                  <p className="text-sm text-muted-foreground">{mentor.title}</p>
+                </div>
+                <div className="space-y-2 text-sm">
+                  <p>
+                    <span className="font-semibold">Experience:</span> {mentor.experience}
+                  </p>
+                  <Badge variant="secondary">{mentor.specialty}</Badge>
+                </div>
+                <Button className="w-full btn-primary">
+                  <MessageCircle className="mr-2 h-4 w-4" />
+                  Connect
+                </Button>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

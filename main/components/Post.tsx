@@ -5,9 +5,9 @@ import { useUser } from "@clerk/nextjs";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
-import ReactTimeago from "react-timeago";
 import { Heart, MessageCircle, Repeat2, Send, Trash2, MoreHorizontal } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 import { useState, useEffect } from "react";
 import CommentFeed from "./CommentFeed";
 import CommentForm from "./CommentForm";
@@ -19,6 +19,64 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
+
+// Helper function to parse mentions
+function parsePostContent(content: string) {
+  const mentionRegex = /@([^[]+)\[([^\]]+)\]/g;
+  const parts = [];
+  let lastIndex = 0;
+  let match;
+
+  while ((match = mentionRegex.exec(content)) !== null) {
+    if (match.index > lastIndex) {
+      parts.push({
+        type: "text",
+        content: content.substring(lastIndex, match.index),
+      });
+    }
+
+    parts.push({
+      type: "mention",
+      content: match[1].trim(),
+      userId: match[2],
+    });
+
+    lastIndex = match.index + match[0].length;
+  }
+
+  if (lastIndex < content.length) {
+    parts.push({
+      type: "text",
+      content: content.substring(lastIndex),
+    });
+  }
+
+  return parts;
+}
+
+// Client-side time formatter to avoid hydration issues
+function TimeAgo({ date }: { date: Date }) {
+  const [timeAgo, setTimeAgo] = useState<string>("");
+
+  useEffect(() => {
+    const updateTime = () => {
+      const seconds = Math.floor((Date.now() - new Date(date).getTime()) / 1000);
+      
+      if (seconds < 60) return `${seconds}s ago`;
+      if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
+      if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
+      if (seconds < 604800) return `${Math.floor(seconds / 86400)}d ago`;
+      return new Date(date).toLocaleDateString();
+    };
+
+    setTimeAgo(updateTime());
+    const interval = setInterval(() => setTimeAgo(updateTime()), 60000); // Update every minute
+
+    return () => clearInterval(interval);
+  }, [date]);
+
+  return <span suppressHydrationWarning>{timeAgo || "Just now"}</span>;
+}
 
 function Post({ post }: { post: IPostDocument }) {
   const { user } = useUser();
@@ -90,11 +148,16 @@ function Post({ post }: { post: IPostDocument }) {
     }
   };
 
+  const contentParts = post.text ? parsePostContent(post.text) : [];
+
   return (
     <div className="post-card space-y-4">
       {/* Post Header */}
       <div className="flex items-start justify-between">
-        <div className="flex items-center space-x-3">
+        <Link 
+          href={`/user/${post.user.userId}`}
+          className="flex items-center space-x-3 hover:opacity-80 transition-opacity"
+        >
           <Avatar className="h-12 w-12 ring-2 ring-primary/20">
             <AvatarImage src={post.user.userImage} />
             <AvatarFallback className="bg-gradient-to-br from-primary to-accent text-white font-semibold">
@@ -115,13 +178,11 @@ function Post({ post }: { post: IPostDocument }) {
               )}
             </div>
             <p className="text-xs text-muted-foreground">
-              @{post.user.firstName?.toLowerCase() || "user"} •{" "}
-              <ReactTimeago date={new Date(post.createdAt)} />
+              @{post.user.firstName?.toLowerCase() || "user"} • <TimeAgo date={new Date(post.createdAt)} />
             </p>
           </div>
-        </div>
+        </Link>
 
-        {/* Delete Menu (Only for author) */}
         {isAuthor && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -142,21 +203,33 @@ function Post({ post }: { post: IPostDocument }) {
         )}
       </div>
 
-      {/* Post Content */}
+      {/* Post Content with Mentions */}
       <div className="space-y-3">
         {post.text && (
           <p className="text-foreground whitespace-pre-wrap break-words">
-            {post.text}
+            {contentParts.map((part, index) => {
+              if (part.type === "mention") {
+                return (
+                  <Link
+                    key={index}
+                    href={`/user/${part.userId}`}
+                    className="text-primary hover:underline font-semibold inline-block"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    @{part.content}
+                  </Link>
+                );
+              }
+              return <span key={index}>{part.content}</span>;
+            })}
           </p>
         )}
 
         {post.imageUrl && (
           <div className="relative rounded-xl overflow-hidden border border-border group">
-            <Image
+            <img
               src={post.imageUrl}
               alt="Post image"
-              width={800}
-              height={400}
               className="w-full object-cover hover:scale-105 transition-transform duration-300"
             />
           </div>
