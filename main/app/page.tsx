@@ -2,22 +2,31 @@ import { currentUser } from "@clerk/nextjs/server";
 import PostFeed from "@/components/PostFeed";
 import PostForm from "@/components/PostForm";
 import UserInformation from "@/components/UserInformation";
-import Widget from "@/components/Widget";
+import FriendSuggestions from "@/components/FriendSuggestions";
 import AccountTypeSelector from "@/components/AccountTypeSelector";
 import connectDB from "@/mongodb/db";
 import { Post } from "@/mongodb/models/post";
 import { User } from "@/mongodb/models/user";
 import { Job } from "@/mongodb/models/job";
+import { Followers } from "@/mongodb/models/followers";
 import { SignInButton } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
+import Link from "next/link";
+import { 
+  Briefcase, 
+  Users, 
+  FileText, 
+  TrendingUp,
+  Plus
+} from "lucide-react";
+import RecruiterJobCard from "@/components/RecruiterJobCard";
 
 async function Home() {
   await connectDB();
   
-  // Get current Clerk user
   const clerkUser = await currentUser();
   
-  // If not signed in, show welcome page
+  // Not signed in - show welcome page
   if (!clerkUser) {
     return (
       <div className="bg-background min-h-screen py-20">
@@ -36,12 +45,10 @@ async function Home() {
     );
   }
   
-  // Check if user has set account type
   const dbUser = await User.findByUserId(clerkUser.id);
-  
-  // If user is signed in but hasn't set account type, show selector
   const needsAccountSetup = !dbUser || !dbUser.userType;
   
+  // Need account setup
   if (needsAccountSetup) {
     return (
       <AccountTypeSelector
@@ -54,29 +61,171 @@ async function Home() {
     );
   }
 
-  // If recruiter, show recruiter dashboard
+  // RECRUITER DASHBOARD
   if (dbUser.userType === "recruiter") {
     const jobs = await Job.getJobsByRecruiter(clerkUser.id);
     
+    const totalJobs = jobs.length;
+    const openJobs = jobs.filter((job: any) => job.status === "open").length;
+    const totalApplications = jobs.reduce((sum: number, job: any) => 
+      sum + (job.applications?.length || 0), 0
+    );
+    const pendingApplications = jobs.reduce((sum: number, job: any) => 
+      sum + (job.applications?.filter((app: any) => app.status === "pending").length || 0), 0
+    );
+
+    return (
+      <div className="bg-background min-h-screen py-6">
+        <div className="max-w-7xl mx-auto px-4 space-y-8">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold">Recruiter Dashboard</h1>
+              <p className="text-muted-foreground">
+                Welcome back, {dbUser.firstName}!
+              </p>
+            </div>
+            <Link href="/recruiter/post-job">
+              <Button className="btn-primary">
+                <Plus className="h-5 w-5 mr-2" />
+                Post New Job
+              </Button>
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="card-modern p-6 space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="p-3 rounded-xl bg-blue-500/10">
+                  <Briefcase className="h-6 w-6 text-blue-500" />
+                </div>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Total Jobs</p>
+                <p className="text-3xl font-bold">{totalJobs}</p>
+              </div>
+            </div>
+
+            <div className="card-modern p-6 space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="p-3 rounded-xl bg-green-500/10">
+                  <TrendingUp className="h-6 w-6 text-green-500" />
+                </div>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Open Positions</p>
+                <p className="text-3xl font-bold">{openJobs}</p>
+              </div>
+            </div>
+
+            <div className="card-modern p-6 space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="p-3 rounded-xl bg-purple-500/10">
+                  <Users className="h-6 w-6 text-purple-500" />
+                </div>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Total Applications</p>
+                <p className="text-3xl font-bold">{totalApplications}</p>
+              </div>
+            </div>
+
+            <div className="card-modern p-6 space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="p-3 rounded-xl bg-orange-500/10">
+                  <FileText className="h-6 w-6 text-orange-500" />
+                </div>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Pending Reviews</p>
+                <p className="text-3xl font-bold">{pendingApplications}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-2xl font-bold">Your Job Postings</h2>
+            </div>
+
+            {jobs && jobs.length > 0 ? (
+              <div className="grid gap-6">
+                {jobs.map((job: any) => (
+                  <RecruiterJobCard key={job._id} job={job} />
+                ))}
+              </div>
+            ) : (
+              <div className="card-modern p-12 text-center">
+                <Briefcase className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
+                <h3 className="text-xl font-semibold mb-2">No jobs posted yet</h3>
+                <p className="text-muted-foreground mb-6">
+                  Start by posting your first job opportunity
+                </p>
+                <Link href="/recruiter/post-job">
+                  <Button className="btn-primary">
+                    <Plus className="h-5 w-5 mr-2" />
+                    Post Your First Job
+                  </Button>
+                </Link>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
   }
 
-  // If student, show normal feed
+  // STUDENT DASHBOARD
   const posts = await Post.getAllPosts();
+
+  // Fetch users from database
+  let allUsers = [];
+  try {
+    allUsers = await User.find({ userType: "student" })
+      .limit(20)
+      .lean();
+  } catch (error) {
+    console.error("Error fetching users:", error);
+    allUsers = [];
+  }
+
+  // Get current user's following from Followers model
+  let currentUserFollowing: string[] = [];
+  try {
+    const following = await Followers.getAllFollowing(clerkUser.id);
+    currentUserFollowing = following ? following.map((f: any) => f.following || f.userId) : [];
+  } catch (error) {
+    console.error("Error fetching following:", error);
+    currentUserFollowing = [];
+  }
+
+  // Map users with connection status
+  const friendSuggestions = allUsers
+    .filter((user: any) => user.userId !== clerkUser.id)
+    .map((user: any) => ({
+      _id: user._id?.toString() || "",
+      userId: user.userId || "",
+      firstName: user.firstName || "",
+      lastName: user.lastName || "",
+      imageUrl: user.userImage || user.imageUrl || "",
+      bio: user.bio || "Student Developer",
+      location: user.location || "",
+      companyName: user.companyName || "",
+      topSkills: user.skills?.slice(0, 3) || ["React", "JavaScript", "Node.js"],
+      isConnected: currentUserFollowing.includes(user.userId),
+    }))
+    .slice(0, 5);
 
   return (
     <div className="bg-background min-h-screen py-6">
       <div className="max-w-7xl mx-auto px-4">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* Left Sidebar - User Info */}
           <aside className="lg:col-span-3 space-y-6">
             <UserInformation posts={posts} />
           </aside>
 
-          {/* Main Feed */}
           <main className="lg:col-span-6 space-y-6">
             <PostForm />
             
-            {/* Posts Feed */}
             {posts && posts.length > 0 ? (
               <PostFeed posts={posts} />
             ) : (
@@ -88,9 +237,11 @@ async function Home() {
             )}
           </main>
 
-          {/* Right Sidebar - Widgets */}
           <aside className="lg:col-span-3 space-y-6 hidden lg:block">
-            <Widget />
+            <FriendSuggestions 
+              suggestions={friendSuggestions} 
+              currentUserId={clerkUser.id}
+            />
           </aside>
         </div>
       </div>
