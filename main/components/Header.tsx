@@ -7,6 +7,7 @@ import {
   UsersIcon,
   Zap,
   Trophy,
+  Flame,
   GraduationCap,
   Settings,
 } from "lucide-react";
@@ -51,16 +52,16 @@ async function Header() {
             className="hidden md:flex"
           />
           <NavLink 
-            href="/teams" 
-            icon={<Trophy className="h-5 w-5" />} 
-            label="Teams" 
-            badge="New"
-          />
-          <NavLink 
             href="/jobs" 
             icon={<Briefcase className="h-5 w-5" />} 
             label="Jobs" 
             className="hidden lg:flex"
+          />
+          <NavLink 
+            href="/swipe" 
+            icon={<Flame className="h-5 w-5" />} 
+            label="Swipe" 
+            badge="Hot"
           />
           <NavLink 
             href="/messages" 
