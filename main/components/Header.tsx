@@ -8,6 +8,8 @@ import {
   Zap,
   Trophy,
   Flame,
+  GraduationCap,
+  Settings,
 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "./ui/button";
@@ -66,6 +68,18 @@ async function Header() {
             icon={<MessagesSquare className="h-5 w-5" />} 
             label="Messages"
             className="hidden md:flex"
+          />
+          <NavLink 
+            href="/mentorship" 
+            icon={<GraduationCap className="h-5 w-5" />} 
+            label="Mentor" 
+            className="hidden lg:flex"
+          />
+          <NavLink 
+            href="/settings" 
+            icon={<Settings className="h-5 w-5" />} 
+            label="Settings"
+            className="hidden lg:flex"
           />
 
           {/* User Section */}

@@ -18,7 +18,7 @@ async function ApplicantsPage({ params }: { params: { job_id: string } }) {
 
   await connectDB();
   
-  const dbUser = await User.findByUserId(clerkUser.id);
+  const dbUser = await User.findByUserId(clerkUser.id); 
   
   if (!dbUser || dbUser.userType !== "recruiter") {
     redirect("/");
