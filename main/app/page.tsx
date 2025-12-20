@@ -12,27 +12,21 @@ import { Followers } from "@/mongodb/models/followers";
 import { SignInButton } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { 
-  Briefcase, 
-  Users, 
-  FileText, 
-  TrendingUp,
-  Plus
-} from "lucide-react";
+import { Briefcase, Users, FileText, TrendingUp, Plus } from "lucide-react";
 import RecruiterJobCard from "@/components/RecruiterJobCard";
 
 async function Home() {
   await connectDB();
-  
+
   const clerkUser = await currentUser();
-  
+
   // Not signed in - show welcome page
   if (!clerkUser) {
     return (
       <div className="bg-background min-h-screen py-20">
         <div className="max-w-4xl mx-auto px-4 text-center space-y-8">
           <h1 className="text-5xl font-bold gradient-text">
-            Welcome to HEXjuy's
+            Welcome to HEXjuy&apos;s
           </h1>
           <p className="text-xl text-muted-foreground">
             The student professional network. Connect, collaborate, and grow your career.
@@ -44,10 +38,10 @@ async function Home() {
       </div>
     );
   }
-  
+
   const dbUser = await User.findByUserId(clerkUser.id);
   const needsAccountSetup = !dbUser || !dbUser.userType;
-  
+
   // Need account setup
   if (needsAccountSetup) {
     return (
@@ -61,17 +55,24 @@ async function Home() {
     );
   }
 
+  // =========================
   // RECRUITER DASHBOARD
+  // =========================
   if (dbUser.userType === "recruiter") {
     const jobs = await Job.getJobsByRecruiter(clerkUser.id);
-    
+
     const totalJobs = jobs.length;
     const openJobs = jobs.filter((job: any) => job.status === "open").length;
-    const totalApplications = jobs.reduce((sum: number, job: any) => 
-      sum + (job.applications?.length || 0), 0
+    const totalApplications = jobs.reduce(
+      (sum: number, job: any) => sum + (job.applications?.length || 0),
+      0
     );
-    const pendingApplications = jobs.reduce((sum: number, job: any) => 
-      sum + (job.applications?.filter((app: any) => app.status === "pending").length || 0), 0
+    const pendingApplications = jobs.reduce(
+      (sum: number, job: any) =>
+        sum +
+        (job.applications?.filter((app: any) => app.status === "pending")
+          .length || 0),
+      0
     );
 
     return (
@@ -156,7 +157,9 @@ async function Home() {
             ) : (
               <div className="card-modern p-12 text-center">
                 <Briefcase className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
-                <h3 className="text-xl font-semibold mb-2">No jobs posted yet</h3>
+                <h3 className="text-xl font-semibold mb-2">
+                  No jobs posted yet
+                </h3>
                 <p className="text-muted-foreground mb-6">
                   Start by posting your first job opportunity
                 </p>
@@ -174,15 +177,33 @@ async function Home() {
     );
   }
 
+  // =========================
   // STUDENT DASHBOARD
-  const posts = await Post.getAllPosts();
+  // =========================
+
+  const posts = (await Post.getAllPosts()) || [];
+
+  // Safely compute counts for current user
+  const userPostsCount = posts.filter((post: any) => {
+    const authorId =
+      post.author?.userId || post.user?.userId || post.userId || null;
+    return authorId === clerkUser.id;
+  }).length;
+
+  const userCommentsCount = posts.reduce((count: number, post: any) => {
+    const commentsArray = Array.isArray(post.comments) ? post.comments : [];
+    const postComments = commentsArray.filter((c: any) => {
+      const commentUserId =
+        c.user?.userId || c.author?.userId || c.userId || null;
+      return commentUserId === clerkUser.id;
+    });
+    return count + postComments.length;
+  }, 0);
 
   // Fetch users from database
-  let allUsers = [];
+  let allUsers: any[] = [];
   try {
-    allUsers = await User.find({ userType: "student" })
-      .limit(20)
-      .lean();
+    allUsers = await User.find({ userType: "student" }).limit(20).lean();
   } catch (error) {
     console.error("Error fetching users:", error);
     allUsers = [];
@@ -192,7 +213,9 @@ async function Home() {
   let currentUserFollowing: string[] = [];
   try {
     const following = await Followers.getAllFollowing(clerkUser.id);
-    currentUserFollowing = following ? following.map((f: any) => f.following || f.userId) : [];
+    currentUserFollowing = following
+      ? following.map((f: any) => f.following || f.userId)
+      : [];
   } catch (error) {
     console.error("Error fetching following:", error);
     currentUserFollowing = [];
@@ -219,13 +242,14 @@ async function Home() {
     <div className="bg-background min-h-screen py-6">
       <div className="max-w-7xl mx-auto px-4">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          <aside className="lg:col-span-3 space-y-6">
-            <UserInformation posts={posts} />
-          </aside>
-
+          {/* LEFT SIDEBAR – paste this aside block here */}
+           <aside className="lg:col-span-3 space-y-6">
+             <UserInformation posts={posts} />
+           </aside>
+   
           <main className="lg:col-span-6 space-y-6">
             <PostForm />
-            
+
             {posts && posts.length > 0 ? (
               <PostFeed posts={posts} />
             ) : (
@@ -238,8 +262,8 @@ async function Home() {
           </main>
 
           <aside className="lg:col-span-3 space-y-6 hidden lg:block">
-            <FriendSuggestions 
-              suggestions={friendSuggestions} 
+            <FriendSuggestions
+              suggestions={friendSuggestions}
               currentUserId={clerkUser.id}
             />
           </aside>

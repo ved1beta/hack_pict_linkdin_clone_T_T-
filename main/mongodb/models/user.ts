@@ -2,6 +2,23 @@ import mongoose, { Schema, Document, models, Model } from "mongoose";
 
 export type UserType = "student" | "recruiter";
 
+// Recommendation interface
+export interface IRecommendation {
+  companyName: string;
+  jobId?: string;
+  recommendedAt: Date;
+}
+
+// Interview interface
+export interface IInterview {
+  companyName: string;
+  jobId?: string;
+  scheduledAt: Date;
+  status: "SCHEDULED" | "COMPLETED" | "CANCELLED";
+  notes?: string;
+  createdAt: Date;
+}
+
 export interface IUser {
   userId: string; // Clerk user ID
   userType?: UserType;
@@ -18,6 +35,11 @@ export interface IUser {
   experience?: string;
   education?: string;
   connections?: string[]; // Array of connected user IDs
+  
+  // Recommendations and Interviews
+  recommendations?: IRecommendation[];
+  interviews?: IInterview[];
+  
   codingProfiles?: {
     leetcode?: {
       username: string;
@@ -89,6 +111,52 @@ const UserSchema = new Schema<IUserDocument>(
       default: [],
     },
     
+    // Recommendations - Companies that recommended this candidate
+    recommendations: [
+      {
+        companyName: {
+          type: String,
+          required: true,
+        },
+        jobId: {
+          type: String,
+        },
+        recommendedAt: {
+          type: Date,
+          default: Date.now,
+        },
+      },
+    ],
+    
+    // Scheduled Interviews
+    interviews: [
+      {
+        companyName: {
+          type: String,
+          required: true,
+        },
+        jobId: {
+          type: String,
+        },
+        scheduledAt: {
+          type: Date,
+          required: true,
+        },
+        status: {
+          type: String,
+          enum: ["SCHEDULED", "COMPLETED", "CANCELLED"],
+          default: "SCHEDULED",
+        },
+        notes: {
+          type: String,
+        },
+        createdAt: {
+          type: Date,
+          default: Date.now,
+        },
+      },
+    ],
+    
     // Coding Profiles
     codingProfiles: {
       leetcode: {
@@ -128,6 +196,70 @@ UserSchema.statics.createOrUpdateUser = async function (userData: Partial<IUser>
 
 UserSchema.statics.getAllUsers = async function () {
   return await this.find().sort({ createdAt: -1 }).lean();
+};
+
+// Add recommendation to user
+UserSchema.statics.addRecommendation = async function (
+  userId: string,
+  companyName: string,
+  jobId?: string
+) {
+  return await this.findOneAndUpdate(
+    { userId },
+    {
+      $push: {
+        recommendations: {
+          companyName,
+          jobId,
+          recommendedAt: new Date(),
+        },
+      },
+    },
+    { new: true }
+  );
+};
+
+// Schedule interview for user
+UserSchema.statics.scheduleInterview = async function (
+  userId: string,
+  companyName: string,
+  scheduledAt: Date,
+  jobId?: string,
+  notes?: string
+) {
+  return await this.findOneAndUpdate(
+    { userId },
+    {
+      $push: {
+        interviews: {
+          companyName,
+          jobId,
+          scheduledAt,
+          status: "SCHEDULED",
+          notes,
+          createdAt: new Date(),
+        },
+      },
+    },
+    { new: true }
+  );
+};
+
+// Update interview status
+UserSchema.statics.updateInterviewStatus = async function (
+  userId: string,
+  interviewId: string,
+  status: "SCHEDULED" | "COMPLETED" | "CANCELLED"
+) {
+  return await this.findOneAndUpdate(
+    { userId, "interviews._id": interviewId },
+    {
+      $set: {
+        "interviews.$.status": status,
+      },
+    },
+    { new: true }
+  );
 };
 
 export const User: Model<IUserDocument> =

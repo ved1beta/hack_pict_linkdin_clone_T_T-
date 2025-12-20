@@ -5,17 +5,18 @@ import { User } from "@/mongodb/models/user";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { MapPin, Briefcase, Mail, Calendar, GraduationCap, Award } from "lucide-react";
+import { MapPin, Briefcase, Mail, Calendar, GraduationCap, Award, Star, Clock } from "lucide-react";
 import CodingProfileBadges from "@/components/CodingProfileBadges";
 import Link from "next/link";
 
 interface UserProfilePageProps {
-  params: {
+  params: Promise<{
     userId: string;
-  };
+  }>;
 }
 
 async function UserProfilePage({ params }: UserProfilePageProps) {
+  const { userId } = await params;
   const clerkUser = await currentUser();
 
   if (!clerkUser) {
@@ -24,7 +25,7 @@ async function UserProfilePage({ params }: UserProfilePageProps) {
 
   await connectDB();
 
-  const profileUser = await User.findOne({ userId: params.userId }).lean();
+  const profileUser = await User.findOne({ userId: userId }).lean();
 
   if (!profileUser) {
     return (
@@ -86,6 +87,30 @@ async function UserProfilePage({ params }: UserProfilePageProps) {
                     </p>
                   </div>
 
+                  {/* Recommendations Badges - Visible to Everyone */}
+                  {serializedUser.recommendations && serializedUser.recommendations.length > 0 && (
+                    <div className="bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+                      <div className="flex items-center gap-2 mb-3">
+                        <Star className="h-5 w-5 text-yellow-500" />
+                        <h3 className="font-semibold text-green-900 dark:text-green-100">
+                          Recommended by {serializedUser.recommendations.length} {serializedUser.recommendations.length === 1 ? 'Company' : 'Companies'}
+                        </h3>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {serializedUser.recommendations.map((rec: any, idx: number) => (
+                          <Badge 
+                            key={idx} 
+                            variant="outline" 
+                            className="bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200 border-green-300 dark:border-green-700"
+                          >
+                            <Award className="h-3 w-3 mr-1" />
+                            ✓ {rec.companyName}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                   {serializedUser.bio && (
                     <p className="text-foreground leading-relaxed">
                       {serializedUser.bio}
@@ -117,6 +142,51 @@ async function UserProfilePage({ params }: UserProfilePageProps) {
                 </div>
               </div>
             </div>
+
+            {/* Upcoming Interviews Section */}
+            {serializedUser.interviews && serializedUser.interviews.length > 0 && (
+              <div className="card-modern p-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <Calendar className="h-5 w-5 text-primary" />
+                  <h2 className="text-xl font-bold">Scheduled Interviews</h2>
+                </div>
+                <div className="space-y-3">
+                  {serializedUser.interviews
+                    .filter((interview: any) => interview.status === "SCHEDULED")
+                    .sort((a: any, b: any) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime())
+                    .map((interview: any, idx: number) => (
+                      <div key={idx} className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <h4 className="font-semibold text-blue-900 dark:text-blue-100">
+                              {interview.companyName}
+                            </h4>
+                            <div className="flex items-center gap-2 text-sm text-blue-700 dark:text-blue-300 mt-1">
+                              <Clock className="h-3 w-3" />
+                              {new Date(interview.scheduledAt).toLocaleDateString('en-US', { 
+                                weekday: 'long', 
+                                year: 'numeric', 
+                                month: 'long', 
+                                day: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })}
+                            </div>
+                            {interview.notes && (
+                              <p className="text-sm text-muted-foreground mt-2">
+                                {interview.notes}
+                              </p>
+                            )}
+                          </div>
+                          <Badge variant="outline" className="bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border-blue-300 dark:border-blue-700">
+                            Scheduled
+                          </Badge>
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              </div>
+            )}
 
             {/* Skills Section */}
             {serializedUser.skills && serializedUser.skills.length > 0 && (
@@ -203,6 +273,24 @@ async function UserProfilePage({ params }: UserProfilePageProps) {
                   <span className="text-sm text-muted-foreground">Connections</span>
                   <span className="font-bold">
                     {serializedUser.connections.length || 0}
+                  </span>
+                </div>
+              )}
+
+              {serializedUser.recommendations && serializedUser.recommendations.length > 0 && (
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Recommendations</span>
+                  <span className="font-bold text-green-600">
+                    {serializedUser.recommendations.length}
+                  </span>
+                </div>
+              )}
+
+              {serializedUser.interviews && serializedUser.interviews.filter((i: any) => i.status === "SCHEDULED").length > 0 && (
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Upcoming Interviews</span>
+                  <span className="font-bold text-blue-600">
+                    {serializedUser.interviews.filter((i: any) => i.status === "SCHEDULED").length}
                   </span>
                 </div>
               )}

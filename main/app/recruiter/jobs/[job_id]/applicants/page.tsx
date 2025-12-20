@@ -1,16 +1,30 @@
 import { currentUser } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import connectDB from "@/mongodb/db";
-import { Job } from "@/mongodb/models/job";
 import { User } from "@/mongodb/models/user";
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { ArrowLeft, Users, Briefcase, MapPin } from "lucide-react";
+import { Job } from "@/mongodb/models/job";
 import ApplicantCard from "@/components/ApplicantCard";
-import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { ArrowLeft, Users, Briefcase } from "lucide-react";
+import Link from "next/link";
 
-async function ApplicantsPage({ params }: { params: { job_id: string } }) {
-  const clerkUser = await currentUser();
+interface JobApplicantsPageProps {
+  params: Promise<{
+    job_id: string;
+  }>;
+}
+
+async function JobApplicantsPage({ params }: JobApplicantsPageProps) {
+  // Await params first
+  const { job_id } = await params;
+  
+  let clerkUser;
+  try {
+    clerkUser = await currentUser();
+  } catch (error) {
+    console.error("Clerk error:", error);
+    redirect("/");
+  }
   
   if (!clerkUser) {
     redirect("/");
@@ -18,135 +32,88 @@ async function ApplicantsPage({ params }: { params: { job_id: string } }) {
 
   await connectDB();
   
-  const dbUser = await User.findByUserId(clerkUser.id); 
+  const dbUser = await User.findByUserId(clerkUser.id);
   
   if (!dbUser || dbUser.userType !== "recruiter") {
     redirect("/");
   }
 
-  // ✅ FIXED: Use .lean() and serialize data
-  const jobDoc = await Job.findById(params.job_id).lean();
+  // Fetch the job
+  const job = await Job.findById(job_id).lean();
   
-  if (!jobDoc) {
+  if (!job) {
     return (
       <div className="bg-background min-h-screen py-6">
-        <div className="max-w-4xl mx-auto px-4 text-center">
-          <h1 className="text-2xl font-bold mb-4">Job not found</h1>
-          <Link href="/recruiter">
-            <Button className="btn-primary">Back to Dashboard</Button>
-          </Link>
+        <div className="max-w-5xl mx-auto px-4">
+          <div className="card-modern p-12 text-center">
+            <Briefcase className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
+            <h3 className="text-xl font-semibold mb-2">Job not found</h3>
+            <p className="text-muted-foreground mb-6">
+              This job posting doesn&apos;t exist or has been removed
+            </p>
+            <Link href="/recruiter/dashboard">
+              <Button className="btn-primary">
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back to Dashboard
+              </Button>
+            </Link>
+          </div>
         </div>
       </div>
     );
   }
 
-  // ✅ FIXED: Convert ObjectId to string for comparison
-  if (jobDoc.recruiterId?.toString() !== clerkUser.id) {
-    redirect("/recruiter");
+  // Verify the job belongs to this recruiter
+  if (job.recruiterId !== clerkUser.id) {
+    redirect("/recruiter/dashboard");
   }
 
-  // ✅ FIXED: Transform applicants to plain objects (serializable)
-  const applicants = (jobDoc.applications || []).map((app: any) => ({
-    ...app,
-    _id: app._id?.toString() || '',
-    userId: app.userId?.toString() || '',
-    appliedAt: app.appliedAt ? new Date(app.appliedAt).toISOString() : new Date().toISOString(),
-  }));
-
-  const pendingApplicants = applicants.filter((app: any) => app.status === "pending");
-  const reviewedApplicants = applicants.filter((app: any) => app.status !== "pending");
+  const applicants = job.applications || [];
 
   return (
     <div className="bg-background min-h-screen py-6">
-      <div className="max-w-6xl mx-auto px-4 space-y-6">
+      <div className="max-w-5xl mx-auto px-4 space-y-6">
         {/* Header */}
-        <div className="flex items-center space-x-4">
-          <Link href="/recruiter">
-            <Button variant="ghost" size="icon">
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-          </Link>
-          <div className="flex-1">
-            <h1 className="text-3xl font-bold">{jobDoc.title}</h1>
-            <div className="flex items-center space-x-4 text-sm text-muted-foreground mt-2">
-              <div className="flex items-center">
-                <Briefcase className="h-4 w-4 mr-1.5" />
-                {jobDoc.companyName}
-              </div>
-              <div className="flex items-center">
-                <MapPin className="h-4 w-4 mr-1.5" />
-                {jobDoc.location}
-              </div>
-              <Badge variant={jobDoc.status === "open" ? "default" : "secondary"}>
-                {jobDoc.status}
-              </Badge>
-            </div>
+        <div className="flex items-center justify-between">
+          <div>
+            <Link href="/recruiter/dashboard">
+              <Button variant="ghost" size="sm" className="mb-2">
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back to Dashboard
+              </Button>
+            </Link>
+            <h1 className="text-3xl font-bold">{job.title}</h1>
+            <p className="text-muted-foreground">
+              {job.companyName} • {applicants.length} applicant{applicants.length !== 1 ? 's' : ''}
+            </p>
           </div>
-        </div>
-
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="card-modern p-4">
-            <p className="text-sm text-muted-foreground">Total Applicants</p>
-            <p className="text-3xl font-bold">{applicants.length}</p>
-          </div>
-          <div className="card-modern p-4">
-            <p className="text-sm text-muted-foreground">Pending Review</p>
-            <p className="text-3xl font-bold text-orange-500">{pendingApplicants.length}</p>
-          </div>
-          <div className="card-modern p-4">
-            <p className="text-sm text-muted-foreground">Reviewed</p>
-            <p className="text-3xl font-bold text-green-500">{reviewedApplicants.length}</p>
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <Users className="h-5 w-5" />
+            <span className="text-2xl font-bold">{applicants.length}</span>
           </div>
         </div>
 
         {/* Applicants List */}
         {applicants.length > 0 ? (
-          <div className="space-y-6">
-            {/* Pending Applications */}
-            {pendingApplicants.length > 0 && (
-              <div>
-                <h2 className="text-xl font-bold mb-4 flex items-center">
-                  <Users className="h-5 w-5 mr-2" />
-                  Pending Review ({pendingApplicants.length})
-                </h2>
-                <div className="grid gap-4">
-                  {pendingApplicants.map((applicant: any, index: number) => (
-                    <ApplicantCard
-                      key={applicant._id || index} // ✅ FIXED: Use _id instead of index
-                      applicant={applicant}
-                      jobId={params.job_id}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Reviewed Applications */}
-            {reviewedApplicants.length > 0 && (
-              <div>
-                <h2 className="text-xl font-bold mb-4 flex items-center">
-                  <Users className="h-5 w-5 mr-2" />
-                  Reviewed ({reviewedApplicants.length})
-                </h2>
-                <div className="grid gap-4">
-                  {reviewedApplicants.map((applicant: any, index: number) => (
-                    <ApplicantCard
-                      key={applicant._id || index} // ✅ FIXED: Use _id instead of index
-                      applicant={applicant}
-                      jobId={params.job_id}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
+          <div className="space-y-4">
+            {applicants.map((applicant: any) => (
+              <ApplicantCard
+                key={applicant._id?.toString() || applicant.userId}
+                applicant={{
+                  ...applicant,
+                  _id: applicant._id?.toString() || applicant.userId,
+                }}
+                jobId={job._id.toString()}
+                companyName={job.companyName}
+              />
+            ))}
           </div>
         ) : (
           <div className="card-modern p-12 text-center">
             <Users className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
-            <h2 className="text-xl font-semibold mb-2">No applicants yet</h2>
+            <h3 className="text-xl font-semibold mb-2">No applicants yet</h3>
             <p className="text-muted-foreground">
-              When students apply to this job, they'll appear here.
+              Applications will appear here once candidates start applying
             </p>
           </div>
         )}
@@ -155,4 +122,4 @@ async function ApplicantsPage({ params }: { params: { job_id: string } }) {
   );
 }
 
-export default ApplicantsPage;
+export default JobApplicantsPage;

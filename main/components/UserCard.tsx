@@ -2,10 +2,11 @@
 
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { Button } from "./ui/button";
+import { Badge } from "./ui/badge";
 import { IUserDocument } from "@/mongodb/models/user";
 import { useState } from "react";
 import { toast } from "sonner";
-import { UserPlus, UserMinus, MapPin, Briefcase } from "lucide-react";
+import { UserPlus, UserMinus, MapPin, Briefcase, Award } from "lucide-react";
 import Link from "next/link";
 
 interface UserCardProps {
@@ -111,6 +112,32 @@ function UserCard({ user, currentUserId, isFollowing: initialIsFollowing }: User
           </div>
         )}
       </div>
+
+      {/* NEW: Recommendations Badge */}
+      {user.recommendations && user.recommendations.length > 0 && (
+        <div className="w-full pt-2 border-t border-border">
+          <div className="flex items-center justify-center gap-1 mb-2 text-xs text-muted-foreground">
+            <Award className="h-3 w-3 text-yellow-500" />
+            <span>Recommended by</span>
+          </div>
+          <div className="flex flex-wrap gap-1 justify-center">
+            {user.recommendations.slice(0, 2).map((rec: any, idx: number) => (
+              <Badge 
+                key={idx} 
+                variant="secondary" 
+                className="bg-green-500/10 text-green-700 border-green-500/20 text-xs"
+              >
+                ✓ {rec.companyName}
+              </Badge>
+            ))}
+            {user.recommendations.length > 2 && (
+              <Badge variant="secondary" className="text-xs">
+                +{user.recommendations.length - 2} more
+              </Badge>
+            )}
+          </div>
+        </div>
+      )}
 
       <Button
         variant={isFollowing ? "secondary" : "default"}
