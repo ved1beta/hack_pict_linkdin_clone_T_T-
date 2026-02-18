@@ -1,16 +1,5 @@
 # hack_pict_linkdin_clone_T_T"
 24 hr in pict
 
+winn pict hackathon
 
-.env.local ----
-
-MONGO_DB_USERNAME=harshagrawal6996
-MONGO_DB_PASSWORD=TestPass123
-MONGODB_URI=mongodb+srv://harshagrawal6996:TestPass123@cluster0.i7jfkde.mongodb.net/?retryWrites=true&w=majority
-
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_cmljaC1zYXdmaXNoLTEwLmNsZXJrLmFjY291bnRzLmRldiQ
-CLERK_SECRET_KEY=sk_test_oj2auyHIqMXJ9up7Jj2i7WDFDEaBut2UelX84XUDGx
-
-CLOUDINARY_CLOUD_NAME=dmhvvtxgb
-CLOUDINARY_API_KEY=461269178416885
-CLOUDINARY_API_SECRET=dT1Uxmx0G0PEghyOOb2ZPdnVqrg
