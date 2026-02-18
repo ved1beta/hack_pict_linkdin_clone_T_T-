@@ -10,6 +10,7 @@ import {
   Flame,
   GraduationCap,
   Settings,
+  BarChart3,
 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "./ui/button";
@@ -74,6 +75,12 @@ async function Header() {
             icon={<GraduationCap className="h-5 w-5" />} 
             label="Mentor" 
             className="hidden lg:flex"
+          />
+          <NavLink 
+            href="/analytics" 
+            icon={<BarChart3 className="h-5 w-5" />} 
+            label="Insights"
+            className="hidden md:flex"
           />
           <NavLink 
             href="/settings" 

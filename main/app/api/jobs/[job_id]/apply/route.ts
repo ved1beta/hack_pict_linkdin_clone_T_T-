@@ -3,6 +3,7 @@ import connectDB from "@/mongodb/db";
 import { Job } from "@/mongodb/models/job";
 import { User } from "@/mongodb/models/user";
 import { currentUser } from "@clerk/nextjs/server";
+import { runATSAnalysis } from "@/lib/ats";
 
 export async function POST(
   request: Request,
@@ -65,6 +66,11 @@ export async function POST(
 
     job.applications.push(application);
     await job.save();
+
+    // Run ATS analysis in background (don't block response)
+    runATSAnalysis(clerkUser.id, dbUser, jobId).catch((err) =>
+      console.error("ATS analysis failed:", err)
+    );
 
     return NextResponse.json(
       { success: true, message: "Application submitted successfully" },

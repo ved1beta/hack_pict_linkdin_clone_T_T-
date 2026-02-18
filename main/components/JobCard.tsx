@@ -4,10 +4,11 @@ import { IJobDocument } from "@/mongodb/models/job";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
-import { MapPin, Briefcase, Clock, DollarSign, Users } from "lucide-react";
+import { MapPin, Briefcase, Clock, DollarSign, Users, BarChart3 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import ReactTimeago from "react-timeago";
+import ResumeUploadATS from "./ResumeUploadATS";
 
 interface JobCardProps {
   job: IJobDocument;
@@ -16,7 +17,8 @@ interface JobCardProps {
 
 function JobCard({ job, currentUserId }: JobCardProps) {
   const [applying, setApplying] = useState(false);
-  
+  const [showAts, setShowAts] = useState(false);
+
   const hasApplied = job.applications?.some(
     (app) => app.userId === currentUserId
   );
@@ -117,6 +119,30 @@ function JobCard({ job, currentUserId }: JobCardProps) {
             <Badge variant="secondary" className="text-xs">
               +{job.skills.length - 5} more
             </Badge>
+          )}
+        </div>
+      )}
+
+      {/* ATS Score - expandable */}
+      {!hasApplied && (
+        <div className="border-t border-border pt-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="w-full text-muted-foreground"
+            onClick={() => setShowAts(!showAts)}
+          >
+            <BarChart3 className="h-4 w-4 mr-2" />
+            {showAts ? "Hide" : "Check"} ATS match score
+          </Button>
+          {showAts && (
+            <div className="mt-3 p-3 bg-secondary/50 rounded-lg">
+              <ResumeUploadATS
+                jobId={job._id?.toString()}
+                jobTitle={job.title}
+                compact
+              />
+            </div>
           )}
         </div>
       )}

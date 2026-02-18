@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import connectDB from "@/mongodb/db";
 import { User } from "@/mongodb/models/user";
 import CodingProfilesForm from "@/components/CodingProfilesForm";
+import ResumeUploadATS from "@/components/ResumeUploadATS";
 import { Settings } from "lucide-react";
 
 export default async function SettingsPage() {
@@ -35,6 +36,12 @@ export default async function SettingsPage() {
             Manage your coding profiles and preferences
           </p>
         </div>
+
+        {serializedUser.userType === "student" && (
+          <div className="mb-8">
+            <ResumeUploadATS />
+          </div>
+        )}
 
         <CodingProfilesForm user={serializedUser} />
       </div>
