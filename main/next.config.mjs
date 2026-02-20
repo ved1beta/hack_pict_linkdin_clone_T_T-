@@ -4,6 +4,8 @@ const nextConfig = {
   // Faster production builds - tree-shake heavy packages
   experimental: {
     optimizePackageImports: ["lucide-react", "framer-motion"],
+    // Don't bundle pdf-parse/pdfjs-dist - avoids "Serverless PDF.js bundle could not be resolved"
+    serverComponentsExternalPackages: ["pdf-parse", "pdfjs-dist"],
   },
   // Compress responses
   compress: true,

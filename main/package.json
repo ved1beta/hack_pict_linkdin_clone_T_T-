@@ -32,6 +32,7 @@
     "next": "14.2.2",
     "next-themes": "^0.3.0",
     "openai": "^6.22.0",
+    "pdf-parse": "^1.1.1",
     "react": "^18",
     "react-dom": "^18",
     "react-query": "^3.39.3",
@@ -41,13 +42,13 @@
     "sonner": "^1.4.41",
     "swr": "^2.2.5",
     "tailwind-merge": "^2.3.0",
-    "tailwindcss-animate": "^1.0.7",
-    "unpdf": "^1.4.0"
+    "tailwindcss-animate": "^1.0.7"
   },
   "devDependencies": {
     "@types/cheerio": "^0.22.35",
     "@types/lodash": "^4.17.0",
     "@types/node": "^20.19.25",
+    "@types/pdf-parse": "^1.1.5",
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "@types/react-timeago": "^4.1.7",

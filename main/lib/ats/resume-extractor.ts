@@ -1,9 +1,9 @@
 /**
  * Resume Text Extraction - PDF & DOCX
- * Equivalent to pdfplumber (PDF) + python-docx (DOCX) in Python
+ * Uses pdf-parse (PDF) + mammoth (DOCX).
+ * PDF extraction is dynamically imported to avoid build-time DOMMatrix errors.
  */
 
-import { extractText, getDocumentProxy } from "unpdf";
 import mammoth from "mammoth";
 
 const ALLOWED_MIME = [
@@ -43,9 +43,10 @@ export async function extractResumeText(
     let text: string;
 
     if (mimeType === "application/pdf") {
-      const pdfDoc = await getDocumentProxy(new Uint8Array(buffer));
-      const { text: extracted } = await extractText(pdfDoc, { mergePages: true });
-      text = extracted ?? "";
+      // pdf-parse v1 is CJS; default export is the parse function
+      const pdfParse = (await import("pdf-parse")).default;
+      const result = await pdfParse(buffer);
+      text = result?.text ?? "";
     } else if (
       mimeType ===
         "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
