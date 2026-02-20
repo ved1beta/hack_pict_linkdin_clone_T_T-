@@ -59,9 +59,9 @@ function AccountTypeSelector({ userId, email, firstName, lastName, imageUrl }: A
     <div className="fixed inset-0 bg-background/95 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <div className="card-modern max-w-2xl w-full p-8 space-y-6">
         <div className="text-center space-y-2">
-          <h2 className="text-3xl font-bold gradient-text">Welcome to HEXjuy's!</h2>
+          <h2 className="text-3xl font-bold gradient-text">Welcome to HEXjuy&apos;s!</h2>
           <p className="text-muted-foreground">
-            Let's set up your account. Choose your account type:
+            Let&apos;s set up your account. Choose your account type:
           </p>
         </div>
 

@@ -25,7 +25,7 @@ async function Header() {
             <Zap className="h-6 w-6 text-white" />
           </div>
           <span className="font-bold text-xl gradient-text hidden sm:block">
-            HEXjuy's
+            HEXjuy&apos;s
           </span>
         </Link>
 

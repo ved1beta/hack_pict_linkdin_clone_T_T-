@@ -49,7 +49,7 @@ function NetworkPageContent({ users, currentUserId, followingIds }: NetworkPageC
         </div>
       ) : (
         <div className="text-center py-12 text-muted-foreground">
-          No users found matching "{searchTerm}"
+          No users found matching &quot;{searchTerm}&quot;
         </div>
       )}
     </div>
