@@ -15,6 +15,9 @@ import {
   ChevronUp,
   Zap,
   Award,
+  FileText,
+  Github,
+  Code2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -23,6 +26,12 @@ interface AnalyticsClientProps {
     analyses: any[];
     applicationsWithScores: any[];
     latestGeneral: any;
+    latestParsed?: {
+      name?: string;
+      skills: string[];
+      workExperience: { company: string; role: string; duration: string }[];
+      education: { institution: string; degree: string; year: string }[];
+    } | null;
     stats: {
       totalAnalyses: number;
       totalApplications: number;
@@ -30,6 +39,17 @@ interface AnalyticsClientProps {
       avgJobMatch: number;
     };
     user: { firstName: string; lastName: string; skills: string[] };
+    git?: {
+      repos: { id: string; url: string; repoName: string; owner: string }[];
+      latestAnalysis: {
+        score: number;
+        strengths: string[];
+        improvements: string[];
+        recommendation: string;
+        repoSummary: { repoName: string; languages: string[]; description?: string }[];
+        analyzedAt: string;
+      } | null;
+    };
   };
 }
 
@@ -125,8 +145,12 @@ function ProgressBar({ value, label, color = "primary" }: { value: number; label
   );
 }
 
+type TabType = "resume" | "git";
+
 export default function AnalyticsClient({ data }: AnalyticsClientProps) {
+  const [tab, setTab] = useState<TabType>("resume");
   const [analyzing, setAnalyzing] = useState(false);
+  const [analyzingGit, setAnalyzingGit] = useState(false);
   const [expandedJob, setExpandedJob] = useState<string | null>(null);
 
   const runAnalysis = async (jobId?: string) => {
@@ -145,7 +169,24 @@ export default function AnalyticsClient({ data }: AnalyticsClientProps) {
     }
   };
 
-  const { analyses, applicationsWithScores, latestGeneral, stats, user } = data;
+  const runGitAnalysis = async () => {
+    setAnalyzingGit(true);
+    try {
+      const res = await fetch("/api/git/analyze", { method: "POST" });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Analysis failed");
+      window.location.reload();
+    } catch (e) {
+      console.error(e);
+      alert(e instanceof Error ? e.message : "Git analysis failed");
+    } finally {
+      setAnalyzingGit(false);
+    }
+  };
+
+  const { analyses, applicationsWithScores, latestGeneral, latestParsed, stats, user, git } = data;
+  const gitRepos = git?.repos || [];
+  const gitAnalysis = git?.latestAnalysis || null;
 
   return (
     <div className="max-w-6xl mx-auto px-4 space-y-8">
@@ -157,21 +198,64 @@ export default function AnalyticsClient({ data }: AnalyticsClientProps) {
             Career Insights
           </h1>
           <p className="text-muted-foreground mt-1">
-            Your resume scores, job match analysis, and improvement suggestions
+            Resume scores, job match analysis, and GitHub portfolio insights
           </p>
         </div>
-        <Button
-          onClick={() => runAnalysis()}
-          disabled={analyzing}
-          className="btn-primary"
-        >
-          <RefreshCw
-            className={`h-4 w-4 mr-2 ${analyzing ? "animate-spin" : ""}`}
-          />
-          {analyzing ? "Analyzing..." : "Analyze My Resume"}
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            onClick={() => runAnalysis()}
+            disabled={analyzing}
+            variant={tab === "resume" ? "default" : "outline"}
+            className={tab === "resume" ? "btn-primary" : ""}
+          >
+            <RefreshCw
+              className={`h-4 w-4 mr-2 ${analyzing ? "animate-spin" : ""}`}
+            />
+            {analyzing ? "Analyzing..." : "Analyze My Resume"}
+          </Button>
+          <Button
+            onClick={runGitAnalysis}
+            disabled={analyzingGit || gitRepos.length === 0}
+            variant={tab === "git" ? "default" : "outline"}
+            className={tab === "git" ? "btn-primary" : ""}
+          >
+            <Github
+              className={`h-4 w-4 mr-2 ${analyzingGit ? "animate-spin" : ""}`}
+            />
+            {analyzingGit ? "Analyzing..." : "Analyze My Git"}
+          </Button>
+        </div>
       </div>
 
+      {/* Tabs */}
+      <div className="flex gap-2 border-b border-border pb-2">
+        <button
+          onClick={() => setTab("resume")}
+          className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 ${
+            tab === "resume"
+              ? "bg-primary text-primary-foreground"
+              : "hover:bg-secondary text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <FileText className="h-4 w-4" />
+          Resume Insights
+        </button>
+        <button
+          onClick={() => setTab("git")}
+          className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 ${
+            tab === "git"
+              ? "bg-primary text-primary-foreground"
+              : "hover:bg-secondary text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <Github className="h-4 w-4" />
+          Git Insights
+        </button>
+      </div>
+
+      {/* Resume Insights Tab */}
+      {tab === "resume" && (
+        <>
       {/* Score Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <motion.div
@@ -247,6 +331,80 @@ export default function AnalyticsClient({ data }: AnalyticsClientProps) {
           </p>
         </motion.div>
       </div>
+
+      {/* Your Uploaded Resume (when no analysis yet) */}
+      {!latestGeneral && latestParsed && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="card-modern p-6 space-y-6"
+        >
+          <h2 className="text-xl font-bold flex items-center gap-2">
+            <FileText className="h-5 w-5 text-primary" />
+            Your Uploaded Resume
+          </h2>
+          {latestParsed.name && (
+            <p className="font-medium">{latestParsed.name}</p>
+          )}
+          <p className="text-muted-foreground text-sm">
+            Your resume was parsed successfully. Score it against a job to see ATS match analysis, or analyze your profile for AI insights.
+          </p>
+          <div className="grid md:grid-cols-2 gap-6">
+            <div>
+              <h4 className="font-semibold mb-2 text-primary">Skills</h4>
+              <div className="flex flex-wrap gap-2">
+                {(latestParsed.skills || []).map((s: string, i: number) => (
+                  <span
+                    key={i}
+                    className="px-2 py-1 rounded bg-primary/20 text-primary text-sm"
+                  >
+                    {s}
+                  </span>
+                ))}
+                {(latestParsed.skills || []).length === 0 && (
+                  <span className="text-muted-foreground text-sm">No skills extracted</span>
+                )}
+              </div>
+            </div>
+            <div>
+              <h4 className="font-semibold mb-2 text-primary">Experience</h4>
+              <ul className="space-y-2">
+                {(latestParsed.workExperience || []).map((exp: any, i: number) => (
+                  <li key={i} className="text-sm">
+                    <span className="font-medium">{exp.role}</span> at {exp.company}
+                    {exp.duration && <span className="text-muted-foreground"> · {exp.duration}</span>}
+                  </li>
+                ))}
+                {(latestParsed.workExperience || []).length === 0 && (
+                  <li className="text-muted-foreground text-sm">No experience extracted</li>
+                )}
+              </ul>
+            </div>
+          </div>
+          {(latestParsed.education || []).length > 0 && (
+            <div>
+              <h4 className="font-semibold mb-2 text-primary">Education</h4>
+              <ul className="space-y-1">
+                {(latestParsed.education || []).map((edu: any, i: number) => (
+                  <li key={i} className="text-sm">
+                    {edu.degree} · {edu.institution}
+                    {edu.year && <span className="text-muted-foreground"> ({edu.year})</span>}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          <div className="flex flex-wrap gap-3 pt-2">
+            <Button onClick={() => runAnalysis()} disabled={analyzing} className="btn-primary">
+              <Sparkles className="h-4 w-4 mr-2" />
+              {analyzing ? "Analyzing..." : "Analyze My Resume"}
+            </Button>
+            <p className="text-sm text-muted-foreground self-center">
+              Or use &quot;Check ATS match score&quot; on any job card to score your resume against that job.
+            </p>
+          </div>
+        </motion.div>
+      )}
 
       {/* Latest General Analysis */}
       {latestGeneral && (
@@ -476,8 +634,8 @@ export default function AnalyticsClient({ data }: AnalyticsClientProps) {
         )}
       </motion.div>
 
-      {/* Empty state - no analyses yet */}
-      {!latestGeneral && analyses.length === 0 && (
+      {/* Empty state - no analyses and no parsed resume */}
+      {!latestGeneral && !latestParsed && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -495,6 +653,128 @@ export default function AnalyticsClient({ data }: AnalyticsClientProps) {
             <Sparkles className="h-4 w-4 mr-2" />
             Analyze My Resume
           </Button>
+        </motion.div>
+      )}
+        </>
+      )}
+
+      {/* Git Insights Tab */}
+      {tab === "git" && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="space-y-6"
+        >
+          {gitRepos.length === 0 ? (
+            <div className="card-modern p-12 text-center">
+              <Github className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
+              <h3 className="text-xl font-semibold mb-2">Add GitHub Repos First</h3>
+              <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+                Go to Settings and add your public GitHub repository links. Then come back and click &quot;Analyze My Git&quot; to get portfolio insights.
+              </p>
+              <Button variant="outline" onClick={() => (window.location.href = "/settings")}>
+                Go to Settings
+              </Button>
+            </div>
+          ) : !gitAnalysis ? (
+            <div className="card-modern p-12 text-center">
+              <Code2 className="h-16 w-16 mx-auto text-primary mb-4" />
+              <h3 className="text-xl font-semibold mb-2">View Git Insights</h3>
+              <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+                Click &quot;Analyze My Git&quot; above to analyze your {gitRepos.length} repo{gitRepos.length > 1 ? "s" : ""}. We&apos;ll evaluate your tech stack, project quality, and give improvement suggestions.
+              </p>
+              <Button
+                onClick={runGitAnalysis}
+                disabled={analyzingGit}
+                className="btn-primary"
+              >
+                <Github className={`h-4 w-4 mr-2 ${analyzingGit ? "animate-spin" : ""}`} />
+                {analyzingGit ? "Analyzing..." : "Analyze My Git"}
+              </Button>
+            </div>
+          ) : (
+            <div className="card-modern p-6 space-y-6">
+              <h2 className="text-xl font-bold flex items-center gap-2">
+                <Github className="h-5 w-5 text-primary" />
+                Git Portfolio Analysis
+              </h2>
+
+              <div className="grid md:grid-cols-2 gap-6">
+                <div>
+                  <ScoreRing
+                    score={gitAnalysis.score}
+                    label="Portfolio Score"
+                    color="primary"
+                  />
+                </div>
+                <div className="space-y-4">
+                  <div className="bg-secondary/50 rounded-xl p-4">
+                    <p className="text-sm font-medium text-muted-foreground mb-2">
+                      Recommendation
+                    </p>
+                    <p className="text-foreground">{gitAnalysis.recommendation}</p>
+                  </div>
+                  {gitAnalysis.repoSummary?.length > 0 && (
+                    <div>
+                      <p className="text-sm font-semibold mb-2">Repos Analyzed</p>
+                      <ul className="space-y-1 text-sm">
+                        {gitAnalysis.repoSummary.map((r: any, i: number) => (
+                          <li key={i}>
+                            <span className="font-medium">{r.repoName}</span>
+                            {r.languages?.length > 0 && (
+                              <span className="text-muted-foreground ml-2">
+                                ({r.languages.join(", ")})
+                              </span>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="grid md:grid-cols-2 gap-6">
+                <div>
+                  <h4 className="font-semibold mb-2 flex items-center gap-2 text-green-500">
+                    <CheckCircle2 className="h-4 w-4" />
+                    Strengths
+                  </h4>
+                  <ul className="space-y-1">
+                    {(gitAnalysis.strengths || []).map((s: string, i: number) => (
+                      <li key={i} className="text-sm flex items-start gap-2">
+                        <span className="text-green-500">•</span>
+                        {s}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <div>
+                  <h4 className="font-semibold mb-2 flex items-center gap-2 text-orange-500">
+                    <AlertCircle className="h-4 w-4" />
+                    Areas to Improve
+                  </h4>
+                  <ul className="space-y-1">
+                    {(gitAnalysis.improvements || []).map((s: string, i: number) => (
+                      <li key={i} className="text-sm flex items-start gap-2">
+                        <span className="text-orange-500">•</span>
+                        {s}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+
+              <Button
+                variant="outline"
+                onClick={runGitAnalysis}
+                disabled={analyzingGit}
+              >
+                <RefreshCw className={`h-4 w-4 mr-2 ${analyzingGit ? "animate-spin" : ""}`} />
+                Re-analyze
+              </Button>
+            </div>
+          )}
         </motion.div>
       )}
     </div>

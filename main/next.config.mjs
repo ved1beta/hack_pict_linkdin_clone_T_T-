@@ -1,6 +1,12 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: "standalone",
+  // Faster production builds - tree-shake heavy packages
+  experimental: {
+    optimizePackageImports: ["lucide-react", "framer-motion"],
+  },
+  // Compress responses
+  compress: true,
   images: {
     remotePatterns: [
       {

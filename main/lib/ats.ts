@@ -1,3 +1,4 @@
+import OpenAI from "openai";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { ResumeAnalysis } from "@/mongodb/models/resumeAnalysis";
 import { Job } from "@/mongodb/models/job";
@@ -20,16 +21,16 @@ function buildResumeText(user: any): string {
 export async function runATSAnalysis(
   userId: string,
   user: any,
-  jobId?: string
+  jobId?: string,
+  uploadedResumeText?: string | null
 ): Promise<any> {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) return null;
+  const kimiKey = process.env.KIMI_K2_API_KEY;
+  const geminiKey = process.env.GEMINI_API_KEY;
+  if (!kimiKey && !geminiKey) return null;
 
-  const resumeText = buildResumeText(user);
-  const genAI = new GoogleGenerativeAI(apiKey);
-  const model = genAI.getGenerativeModel({
-    model: process.env.GEMINI_MODEL || "gemini-2.0-flash",
-  });
+  const resumeText = (uploadedResumeText && uploadedResumeText.trim())
+    ? uploadedResumeText.trim()
+    : buildResumeText(user);
 
   let jobDetails = "";
   let jobTitle = "";
@@ -86,8 +87,41 @@ Respond with ONLY a valid JSON object (no markdown, no code blocks) with these e
 
 Set jobMatchScore, matchedSkills, missingSkills to empty arrays if not applicable.`;
 
-  const result = await model.generateContent(prompt);
-  const text = result.response.text();
+  const callKimi = async (): Promise<string> => {
+    if (!kimiKey) throw new Error("No Kimi key");
+    const openai = new OpenAI({
+      apiKey: kimiKey,
+      baseURL: "https://kimi-k2.ai/api/v1",
+    });
+    const response = await openai.chat.completions.create({
+      model: process.env.KIMI_MODEL || "kimi-k2-0905",
+      messages: [{ role: "user", content: prompt }],
+      temperature: 0.1,
+    });
+    return response.choices[0]?.message?.content?.trim() ?? "";
+  };
+
+  const callGemini = async (): Promise<string> => {
+    if (!geminiKey) throw new Error("No Gemini key");
+    const genAI = new GoogleGenerativeAI(geminiKey);
+    const model = genAI.getGenerativeModel({
+      model: process.env.GEMINI_MODEL || "gemini-2.0-flash",
+    });
+    const result = await model.generateContent(prompt);
+    return result.response.text();
+  };
+
+  let text: string;
+  if (kimiKey) {
+    text = await callKimi();
+  } else if (geminiKey) {
+    text = await callGemini();
+  } else {
+    throw new Error("No AI provider configured");
+  }
+
+  if (!text) throw new Error("Empty AI response");
+
   const jsonMatch = text.replace(/```json\n?|\n?```/g, "").trim();
   const parsed = JSON.parse(jsonMatch);
 

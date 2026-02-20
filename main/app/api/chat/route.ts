@@ -1,7 +1,5 @@
 import { NextResponse } from "next/server";
-import { GoogleGenerativeAI } from "@google/generative-ai";
-
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
+import { chatWithProvider, getActiveProvider } from "@/lib/chat-providers";
 
 const SYSTEM_PROMPT = `You are a helpful career assistant for HEXjuy's - a student professional network (LinkedIn clone for students). 
 You help students with:
@@ -24,40 +22,17 @@ export async function POST(request: Request) {
       );
     }
 
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) {
+    const provider = getActiveProvider();
+    if (!provider) {
       return NextResponse.json(
-        { error: "Gemini API key not configured" },
+        { error: "No AI provider configured. Set KIMI_K2_API_KEY, GEMINI_API_KEY, or OPENAI_API_KEY in .env.local" },
         { status: 500 }
       );
     }
 
-    const model = genAI.getGenerativeModel({
-      model: process.env.GEMINI_MODEL || "gemini-2.0-flash",
-      systemInstruction: SYSTEM_PROMPT,
-    });
+    const text = await chatWithProvider(messages, SYSTEM_PROMPT);
 
-    // Map client messages to Gemini format (user/assistant -> user/model)
-    const mapped = messages.map((m: { role: string; content: string }) => ({
-      role: m.role === "user" ? "user" : "model",
-      parts: [{ text: m.content }],
-    }));
-
-    const lastMsg = mapped[mapped.length - 1];
-    const history = mapped.slice(0, -1);
-
-    const chat = model.startChat({
-      history: history.map((c: { role: string; parts: { text: string }[] }) => ({
-        role: c.role as "user" | "model",
-        parts: c.parts,
-      })),
-    });
-
-    const result = await chat.sendMessage(lastMsg.parts[0].text);
-    const response = result.response;
-    const text = response.text();
-
-    return NextResponse.json({ message: text });
+    return NextResponse.json({ message: text, provider });
   } catch (error) {
     console.error("Chat API error:", error);
     return NextResponse.json(

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { 
@@ -10,7 +10,9 @@ import {
   Play,
   X,
   Loader2,
-  AlertCircle
+  AlertCircle,
+  Map,
+  ExternalLink
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -141,6 +143,17 @@ export default function MentorshipPage() {
   const [selectedSkill, setSelectedSkill] = useState<string | null>(null);
   const [videoId, setVideoId] = useState<string | null>(null);
   const [isLoadingVideo, setIsLoadingVideo] = useState(false);
+  const [roadmap, setRoadmap] = useState<{ url: string; displayName: string; basedOnSkills: string[] } | null>(null);
+  const [roadmapLoading, setRoadmapLoading] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/mentorship/roadmap")
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => {
+        if (data) setRoadmap({ url: data.url, displayName: data.displayName, basedOnSkills: data.basedOnSkills || [] });
+      })
+      .finally(() => setRoadmapLoading(false));
+  }, []);
 
   const getSkills = () => {
     const skillSet = SKILLS_DATABASE[interest]?.[jobRole];
@@ -213,6 +226,56 @@ export default function MentorshipPage() {
           <p className="text-muted-foreground max-w-2xl mx-auto">
             Get personalized skill recommendations and learn with curated video tutorials
           </p>
+        </div>
+
+        {/* Roadmap.sh - Based on Resume */}
+        <div className="card-modern p-8 space-y-4">
+          <div className="flex items-center gap-2">
+            <Map className="h-6 w-6 text-primary" />
+            <h2 className="text-2xl font-bold">Your Career Roadmap</h2>
+          </div>
+          <p className="text-muted-foreground">
+            Personalized roadmap from roadmap.sh based on your resume skills. Upload a resume in Settings for better recommendations.
+          </p>
+          {roadmapLoading ? (
+            <div className="flex items-center gap-2 py-8">
+              <Loader2 className="h-5 w-5 animate-spin text-primary" />
+              <span>Loading your roadmap...</span>
+            </div>
+          ) : roadmap ? (
+            <div className="space-y-4">
+              <div className="flex flex-wrap items-center gap-3">
+                <a
+                  href={roadmap.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 btn-primary"
+                >
+                  <Map className="h-4 w-4" />
+                  {roadmap.displayName} Roadmap
+                  <ExternalLink className="h-4 w-4" />
+                </a>
+                {roadmap.basedOnSkills.length > 0 && (
+                  <span className="text-sm text-muted-foreground">
+                    Based on: {roadmap.basedOnSkills.slice(0, 5).join(", ")}
+                    {roadmap.basedOnSkills.length > 5 ? "..." : ""}
+                  </span>
+                )}
+              </div>
+              <div className="rounded-xl overflow-hidden border border-border bg-secondary/30">
+                <iframe
+                  src={roadmap.url}
+                  className="w-full h-[400px] border-0"
+                  title="Career Roadmap"
+                  sandbox="allow-scripts allow-same-origin"
+                />
+              </div>
+            </div>
+          ) : (
+            <p className="text-muted-foreground py-4">
+              Add skills or upload a resume to get a personalized roadmap.
+            </p>
+          )}
         </div>
 
         {/* Skill Recommendation Engine */}

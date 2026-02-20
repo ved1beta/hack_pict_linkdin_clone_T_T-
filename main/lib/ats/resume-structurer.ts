@@ -1,6 +1,7 @@
 /**
  * AI-Based Resume Structuring
- * Uses OpenAI GPT (or Gemini fallback) to convert raw resume text into structured JSON
+ * Supports: Kimi K2, OpenAI GPT, Gemini (priority order)
+ * Kimi K2 docs: https://kimi-k2.ai/api-docs
  */
 
 import OpenAI from "openai";
@@ -53,17 +54,44 @@ export async function structureResumeWithAI(
     throw new Error("Resume text too short to parse");
   }
 
+  const kimiKey = process.env.KIMI_K2_API_KEY;
   const openaiKey = process.env.OPENAI_API_KEY;
   const geminiKey = process.env.GEMINI_API_KEY;
 
-  if (openaiKey) {
-    return structureWithOpenAI(rawText, openaiKey);
-  }
-  if (geminiKey) {
-    return structureWithGemini(rawText, geminiKey);
-  }
+  if (kimiKey) return structureWithKimi(rawText, kimiKey);
+  if (openaiKey) return structureWithOpenAI(rawText, openaiKey);
+  if (geminiKey) return structureWithGemini(rawText, geminiKey);
 
-  throw new Error("Neither OPENAI_API_KEY nor GEMINI_API_KEY is configured");
+  throw new Error("Set KIMI_K2_API_KEY, OPENAI_API_KEY, or GEMINI_API_KEY in .env.local");
+}
+
+async function structureWithKimi(
+  rawText: string,
+  apiKey: string
+): Promise<StructuredResume> {
+  const openai = new OpenAI({
+    apiKey,
+    baseURL: "https://kimi-k2.ai/api/v1",
+  });
+  const response = await openai.chat.completions.create({
+    model: process.env.KIMI_MODEL || "kimi-k2-0905",
+    messages: [
+      {
+        role: "system",
+        content: "You extract resume data into strict JSON. Return only valid JSON, no markdown.",
+      },
+      {
+        role: "user",
+        content: STRUCTURE_PROMPT + rawText.slice(0, 12000),
+      },
+    ],
+    temperature: 0.1,
+  });
+
+  const content = response.choices[0]?.message?.content?.trim();
+  if (!content) throw new Error("Empty AI response");
+
+  return parseStructuredResponse(content);
 }
 
 async function structureWithOpenAI(

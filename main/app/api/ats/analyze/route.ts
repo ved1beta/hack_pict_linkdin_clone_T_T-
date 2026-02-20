@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { currentUser } from "@clerk/nextjs/server";
 import connectDB from "@/mongodb/db";
 import { User } from "@/mongodb/models/user";
+import { ResumeUpload } from "@/mongodb/models/resumeUpload";
+import { ParsedResume } from "@/mongodb/models/parsedResume";
 import { runATSAnalysis } from "@/lib/ats";
 
 export async function POST(request: Request) {
@@ -20,10 +22,36 @@ export async function POST(request: Request) {
 
     const { jobId } = await request.json().catch(() => ({}));
 
-    const analysis = await runATSAnalysis(clerkUser.id, dbUser, jobId);
+    // Prefer uploaded resume over profile when available
+    let resumeText: string | null = null;
+    const latestUpload = await ResumeUpload.findOne({ userId: clerkUser.id })
+      .sort({ createdAt: -1 })
+      .lean();
+    if (latestUpload?.extractedText) {
+      resumeText = latestUpload.extractedText;
+    } else if (latestUpload) {
+      const parsed = await ParsedResume.findOne({ resumeUploadId: latestUpload._id }).lean();
+      if (parsed) {
+        const p = parsed as any;
+        const parts: string[] = [];
+        if (p.name) parts.push(`Name: ${p.name}`);
+        if (p.email) parts.push(`Email: ${p.email}`);
+        if (p.phone) parts.push(`Phone: ${p.phone}`);
+        if (p.skills?.length) parts.push(`Skills: ${p.skills.join(", ")}`);
+        (p.workExperience || []).forEach((e: any) => {
+          parts.push(`${e.role} at ${e.company} (${e.duration || ""})`);
+        });
+        (p.education || []).forEach((e: any) => {
+          parts.push(`${e.degree} at ${e.institution} (${e.year || ""})`);
+        });
+        resumeText = parts.join("\n\n") || null;
+      }
+    }
+
+    const analysis = await runATSAnalysis(clerkUser.id, dbUser, jobId, resumeText);
     if (!analysis) {
       return NextResponse.json(
-        { error: "Gemini API not configured" },
+        { error: "AI provider not configured (set KIMI_K2_API_KEY or GEMINI_API_KEY)" },
         { status: 500 }
       );
     }

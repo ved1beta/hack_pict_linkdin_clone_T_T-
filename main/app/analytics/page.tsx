@@ -4,6 +4,10 @@ import connectDB from "@/mongodb/db";
 import { User } from "@/mongodb/models/user";
 import { ResumeAnalysis } from "@/mongodb/models/resumeAnalysis";
 import { AtsScore } from "@/mongodb/models/atsScore";
+import { ResumeUpload } from "@/mongodb/models/resumeUpload";
+import { ParsedResume } from "@/mongodb/models/parsedResume";
+import { GitRepo } from "@/mongodb/models/gitRepo";
+import { GitAnalysis } from "@/mongodb/models/gitAnalysis";
 import { Job } from "@/mongodb/models/job";
 import AnalyticsClient from "./AnalyticsClient";
 
@@ -19,10 +23,26 @@ async function AnalyticsPage() {
   // Students only - recruiters don't need this
   if (dbUser.userType === "recruiter") redirect("/");
 
-  const [analyses, atsScores] = await Promise.all([
+  const [analyses, atsScores, latestUpload, gitRepos, gitAnalyses] = await Promise.all([
     ResumeAnalysis.find({ userId: clerkUser.id }).sort({ analyzedAt: -1 }).lean(),
     AtsScore.find({ userId: clerkUser.id }).sort({ createdAt: -1 }).lean(),
+    ResumeUpload.findOne({ userId: clerkUser.id }).sort({ createdAt: -1 }).lean(),
+    GitRepo.find({ userId: clerkUser.id }).sort({ createdAt: -1 }).lean(),
+    GitAnalysis.find({ userId: clerkUser.id }).sort({ analyzedAt: -1 }).limit(1).lean(),
   ]);
+
+  let latestParsed = null;
+  if (latestUpload) {
+    const parsed = await ParsedResume.findOne({ resumeUploadId: latestUpload._id }).lean();
+    if (parsed) {
+      latestParsed = {
+        name: (parsed as any).name,
+        skills: (parsed as any).skills || [],
+        workExperience: (parsed as any).workExperience || [],
+        education: (parsed as any).education || [],
+      };
+    }
+  }
 
   const allJobs = await Job.find({}).lean();
   const appliedJobs = allJobs.filter((job: any) =>
@@ -151,12 +171,15 @@ async function AnalyticsPage() {
       ? jobScores.reduce((s, v) => s + (v || 0), 0) / jobScores.length
       : 0;
 
+  const latestGitAnalysis = (gitAnalyses as any[])?.[0] || null;
+
   const serialized = {
     analyses: JSON.parse(JSON.stringify(analyses)),
     applicationsWithScores,
     latestGeneral: (latestGeneral || latestFromUpload)
       ? JSON.parse(JSON.stringify(latestGeneral || latestFromUpload))
       : null,
+    latestParsed: latestParsed ? JSON.parse(JSON.stringify(latestParsed)) : null,
     stats: {
       totalAnalyses: analyses.length + atsScores.length,
       totalApplications: applicationsWithScores.length,
@@ -167,6 +190,24 @@ async function AnalyticsPage() {
       firstName: dbUser.firstName,
       lastName: dbUser.lastName,
       skills: dbUser.skills || [],
+    },
+    git: {
+      repos: (gitRepos as any[]).map((r) => ({
+        id: r._id.toString(),
+        url: r.url,
+        repoName: r.repoName,
+        owner: r.owner,
+      })),
+      latestAnalysis: latestGitAnalysis
+        ? {
+            score: latestGitAnalysis.score,
+            strengths: latestGitAnalysis.strengths || [],
+            improvements: latestGitAnalysis.improvements || [],
+            recommendation: latestGitAnalysis.recommendation || "",
+            repoSummary: latestGitAnalysis.repoSummary || [],
+            analyzedAt: latestGitAnalysis.analyzedAt || latestGitAnalysis.createdAt,
+          }
+        : null,
     },
   };
 

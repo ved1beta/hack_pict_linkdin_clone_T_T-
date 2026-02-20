@@ -15,17 +15,24 @@ No extra setup needed. ATS uses your existing MongoDB connection (`MONGODB_URI`)
 
 ## 2. AI Keys (at least one required)
 
-**Option A - OpenAI** (recommended for best results):
+**Option A - Kimi K2** (OpenAI-compatible, supports $web_search for real-time web results):
+```env
+KIMI_K2_API_KEY=your_key
+```
+Docs: https://kimi-k2.ai/api-docs | Get key: https://kimi-k2.ai/api-keys
+Used for: chatbot, resume structuring. 100 free credits for new users.
+
+**Option B - OpenAI** (recommended for embeddings):
 ```env
 OPENAI_API_KEY=sk-...
 ```
 Used for: resume structuring (GPT-4o-mini), embeddings (text-embedding-3-small)
 
-**Option B - Gemini** (fallback for structuring only):
+**Option C - Gemini**:
 ```env
 GEMINI_API_KEY=...
 ```
-Used for: resume structuring when OpenAI not set. Semantic similarity will default to 0.5 without OpenAI.
+Used for: chatbot, resume structuring, profile-based ATS. Semantic similarity defaults to 0.5 without OpenAI.
 
 ## 3. Scoring Weights
 
