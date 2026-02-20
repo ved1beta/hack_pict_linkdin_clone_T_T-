@@ -1,5 +1,6 @@
+# Use this when build context is repo root (parent of main/)
 # ---- Stage 1: Install dependencies ----
-FROM node:18-alpine AS deps
+FROM node:20-alpine AS deps
 WORKDIR /app
 
 # Copy package files from the main/ subdirectory
@@ -9,7 +10,7 @@ COPY main/package.json main/package-lock.json ./
 RUN npm ci
 
 # ---- Stage 2: Build the Next.js app ----
-FROM node:18-alpine AS builder
+FROM node:20-alpine AS builder
 WORKDIR /app
 
 # Copy installed node_modules from deps stage
@@ -22,7 +23,7 @@ COPY main/ .
 RUN npm run build
 
 # ---- Stage 3: Production runner ----
-FROM node:18-alpine AS runner
+FROM node:20-alpine AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production

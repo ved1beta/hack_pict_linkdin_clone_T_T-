@@ -1,0 +1,7 @@
+# From repo root - excludes from build context
+.git
+.gitignore
+main/node_modules
+main/.next
+main/.env*
+main/.env.local
