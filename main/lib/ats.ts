@@ -91,10 +91,10 @@ Set jobMatchScore, matchedSkills, missingSkills to empty arrays if not applicabl
     if (!kimiKey) throw new Error("No Kimi key");
     const openai = new OpenAI({
       apiKey: kimiKey,
-      baseURL: "https://integrate.api.nvidia.com/v1",
+      baseURL: "https://kimi-k2.ai/api/v1",
     });
     const response = await openai.chat.completions.create({
-      model: process.env.KIMI_MODEL || "moonshotai/kimi-k2.5",
+      model: process.env.KIMI_MODEL || "kimi-k2-0905",
       messages: [{ role: "user", content: prompt }],
       temperature: 0.1,
     });
