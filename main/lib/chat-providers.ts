@@ -43,7 +43,7 @@ async function chatWithKimi(
 
   const openai = new OpenAI({
     apiKey,
-    baseURL: "https://kimi-k2.ai/api/v1",
+    baseURL: "https://integrate.api.nvidia.com/v1",
   });
 
   const formatted = [
@@ -55,7 +55,7 @@ async function chatWithKimi(
   ];
 
   const response = await openai.chat.completions.create({
-    model: process.env.KIMI_MODEL || "kimi-k2-0905",
+    model: process.env.KIMI_MODEL || "moonshotai/kimi-k2.5",
     messages: formatted,
     max_tokens: 2048,
   });
