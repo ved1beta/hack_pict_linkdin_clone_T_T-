@@ -9,4 +9,6 @@ to do--
 3) show how recomentdation affect ranking
 4) everyones ats score
 5) snapshot on blockchain
-6) try --- identify and give them fixes regaridng resume for specific job roles -- this contains tasks that can be completed to increase the ats score 
+6) try --- identify and give them fixes regaridng resume for specific job roles -- this contains tasks that can be completed to increase the ats score
+7) road map
+8) 
