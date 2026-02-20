@@ -61,7 +61,7 @@ export async function POST(
       userImage: dbUser.userImage,
       resumeUrl: dbUser.resumeUrl,
       appliedAt: new Date(),
-      status: "pending",
+      status: "pending" as const,
     };
 
     job.applications.push(application);

@@ -262,5 +262,14 @@ UserSchema.statics.updateInterviewStatus = async function (
   );
 };
 
-export const User: Model<IUserDocument> =
-  models.User || mongoose.model<IUserDocument>("User", UserSchema);
+export interface IUserModel extends Model<IUserDocument> {
+  findByUserId(userId: string): Promise<IUserDocument | null>;
+  createOrUpdateUser(userData: Partial<IUser>): Promise<IUserDocument>;
+  getAllUsers(): Promise<IUserDocument[]>;
+  addRecommendation(userId: string, companyName: string, jobId?: string): Promise<IUserDocument | null>;
+  scheduleInterview(userId: string, companyName: string, scheduledAt: Date, jobId?: string, notes?: string): Promise<IUserDocument | null>;
+  updateInterviewStatus(userId: string, interviewId: string, status: "SCHEDULED" | "COMPLETED" | "CANCELLED"): Promise<IUserDocument | null>;
+}
+
+export const User: IUserModel =
+  (models.User as IUserModel) || (mongoose.model<IUserDocument>("User", UserSchema) as IUserModel);

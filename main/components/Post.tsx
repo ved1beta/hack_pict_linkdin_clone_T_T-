@@ -141,7 +141,7 @@ function Post({ post }: { post: IPostDocument }) {
     if (!confirmed) return;
 
     try {
-      await deletePostAction(post._id as string);
+      await deletePostAction(String(post._id));
       toast.success("Post deleted successfully!");
     } catch (error) {
       toast.error("Failed to delete post");
@@ -292,7 +292,7 @@ function Post({ post }: { post: IPostDocument }) {
       {/* Comments Section */}
       {isCommentsOpen && (
         <div className="space-y-4 pt-4 border-t border-border animate-in slide-in-from-top-2">
-          <CommentForm postId={post._id as string} />
+          <CommentForm postId={String(post._id)} />
           <CommentFeed post={post} />
         </div>
       )}

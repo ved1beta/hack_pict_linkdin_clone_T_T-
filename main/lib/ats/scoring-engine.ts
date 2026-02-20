@@ -99,7 +99,7 @@ function calculateSkillMatch(
 
   requiredSet.forEach((r) => {
     let found = false;
-    for (const c of candidateSet) {
+    for (const c of Array.from(candidateSet)) {
       if (c.includes(r) || r.includes(c)) {
         found = true;
         if (!common.includes(r)) common.push(r);
@@ -158,7 +158,7 @@ function calculateKeywordDensity(job: JobData, resumeText: string): number {
     ...extractKeywords(job.description),
   ].filter(Boolean);
 
-  const unique = [...new Set(keywords.map((k) => k.toLowerCase().trim()))];
+  const unique = Array.from(new Set(keywords.map((k) => k.toLowerCase().trim())));
   if (unique.length === 0) return 1;
 
   const resumeLower = resumeText.toLowerCase();
@@ -181,7 +181,7 @@ function extractKeywords(text: string): string[] {
     .replace(/[^\w\s]/g, " ")
     .split(/\s+/)
     .filter((w) => w.length > 2);
-  return [...new Set(words)].slice(0, 20);
+  return Array.from(new Set(words)).slice(0, 20);
 }
 
 // 4E: Semantic Similarity - OpenAI embeddings + cosine similarity

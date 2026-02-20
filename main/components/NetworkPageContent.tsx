@@ -1,13 +1,25 @@
 "use client";
 
-import { IUserDocument } from "@/mongodb/models/user";
 import { useState } from "react";
 import UserCard from "./UserCard";
 import { Search } from "lucide-react";
 import { Input } from "./ui/input";
 
+interface NetworkUser {
+  _id: string;
+  userId: string;
+  firstName: string;
+  lastName: string;
+  userImage?: string;
+  bio?: string;
+  location?: string;
+  companyName?: string;
+  skills?: string[];
+  userType?: string;
+}
+
 interface NetworkPageContentProps {
-  users: IUserDocument[];
+  users: NetworkUser[];
   currentUserId: string;
   followingIds: string[];
 }
@@ -40,7 +52,7 @@ function NetworkPageContent({ users, currentUserId, followingIds }: NetworkPageC
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredUsers.map((user) => (
             <UserCard
-              key={user._id as string}
+              key={user._id}
               user={user}
               currentUserId={currentUserId}
               isFollowing={followingIds.includes(user.userId)}

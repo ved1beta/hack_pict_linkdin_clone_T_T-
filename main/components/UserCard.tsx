@@ -3,14 +3,26 @@
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
-import { IUserDocument } from "@/mongodb/models/user";
 import { useState } from "react";
 import { toast } from "sonner";
 import { UserPlus, UserMinus, MapPin, Briefcase, Award } from "lucide-react";
 import Link from "next/link";
 
+interface UserCardUser {
+  _id: string;
+  userId: string;
+  firstName: string;
+  lastName: string;
+  userImage?: string;
+  bio?: string;
+  location?: string;
+  companyName?: string;
+  skills?: string[];
+  recommendations?: { companyName: string; jobId?: string }[];
+}
+
 interface UserCardProps {
-  user: IUserDocument;
+  user: UserCardUser;
   currentUserId: string;
   isFollowing: boolean;
 }

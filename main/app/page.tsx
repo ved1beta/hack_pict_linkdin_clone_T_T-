@@ -59,7 +59,7 @@ async function Home() {
   // RECRUITER DASHBOARD
   // =========================
   if (dbUser.userType === "recruiter") {
-    const jobs = await Job.getJobsByRecruiter(clerkUser.id);
+    const jobs = await Job.find({ recruiterId: clerkUser.id }).sort({ postedAt: -1 }).lean();
 
     const totalJobs = jobs.length;
     const openJobs = jobs.filter((job: any) => job.status === "open").length;

@@ -22,7 +22,7 @@ async function JobsPage() {
   }
 
   // Fetch all open jobs
-  const jobs = await Job.getAllJobs();
+  const jobs = await Job.find({ status: "open" }).sort({ postedAt: -1 }).lean();
   const serializedJobs = JSON.parse(JSON.stringify(jobs));
 
   return (

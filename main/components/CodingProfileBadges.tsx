@@ -37,7 +37,7 @@ export default function CodingProfileBadges({ codingProfiles }: CodingProfileBad
 
       <div className="space-y-3">
         {/* LeetCode Badge */}
-        {hasLeetCode && (
+        {hasLeetCode && codingProfiles.leetcode && (
           <Link
             href={`https://leetcode.com/${codingProfiles.leetcode.username}`}
             target="_blank"
@@ -84,7 +84,7 @@ export default function CodingProfileBadges({ codingProfiles }: CodingProfileBad
         )}
 
         {/* CodeChef Badge */}
-        {hasCodeChef && (
+        {hasCodeChef && codingProfiles.codechef && (
           <Link
             href={`https://www.codechef.com/users/${codingProfiles.codechef.username}`}
             target="_blank"

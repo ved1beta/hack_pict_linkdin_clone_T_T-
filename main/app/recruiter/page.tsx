@@ -31,7 +31,7 @@ async function RecruiterDashboard() {
   }
 
   // Fetch recruiter's jobs
-  const jobs = await Job.getJobsByRecruiter(clerkUser.id);
+  const jobs = await Job.find({ recruiterId: clerkUser.id }).sort({ postedAt: -1 }).lean();
   
   // Calculate stats
   const totalJobs = jobs.length;

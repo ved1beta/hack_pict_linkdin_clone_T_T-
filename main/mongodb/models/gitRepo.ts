@@ -7,7 +7,10 @@ export interface IGitRepo {
   owner: string;
 }
 
-export interface IGitRepoDocument extends IGitRepo, Document {}
+export interface IGitRepoDocument extends IGitRepo, Document {
+  createdAt?: Date;
+  updatedAt?: Date;
+}
 
 const GitRepoSchema = new Schema<IGitRepoDocument>(
   {
