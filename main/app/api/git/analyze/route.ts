@@ -126,16 +126,30 @@ Be constructive. Consider: tech stack diversity, project complexity, documentati
       }
     }
     if (!text && process.env.KIMI_K2_API_KEY) {
-      const openai = new OpenAI({
-        apiKey: process.env.KIMI_K2_API_KEY,
-        baseURL: process.env.KIMI_BASE_URL || "https://integrate.api.nvidia.com/v1",
-      });
-      const res = await openai.chat.completions.create({
-        model: process.env.KIMI_MODEL || "moonshotai/kimi-k2.5",
-        messages: [{ role: "user", content: prompt }],
-        temperature: 0.2,
-      });
-      text = res.choices[0]?.message?.content?.trim() ?? "";
+      const baseUrl = process.env.KIMI_BASE_URL || "https://integrate.api.nvidia.com/v1";
+      const isMoonshot = baseUrl.includes("api.moonshot");
+      const model = process.env.KIMI_MODEL || (isMoonshot ? "kimi-k2-turbo-preview" : "moonshotai/kimi-k2.5");
+      try {
+        const openai = new OpenAI({ apiKey: process.env.KIMI_K2_API_KEY, baseURL: baseUrl });
+        const res = await openai.chat.completions.create({
+          model,
+          messages: [{ role: "user", content: prompt }],
+          temperature: 0.2,
+        });
+        text = res.choices[0]?.message?.content?.trim() ?? "";
+      } catch (e) {
+        if (baseUrl.includes("api.moonshot.ai") && (e as any)?.status === 401) {
+          try {
+            const openaiCn = new OpenAI({ apiKey: process.env.KIMI_K2_API_KEY, baseURL: "https://api.moonshot.cn/v1" });
+            const res = await openaiCn.chat.completions.create({
+              model: process.env.KIMI_MODEL || "kimi-k2-turbo-preview",
+              messages: [{ role: "user", content: prompt }],
+              temperature: 0.2,
+            });
+            text = res.choices[0]?.message?.content?.trim() ?? "";
+          } catch {}
+        }
+      }
     }
     if (!text) {
       return NextResponse.json({ error: "All AI providers failed. Check OpenRouter, Gemini, or Kimi API keys." }, { status: 500 });

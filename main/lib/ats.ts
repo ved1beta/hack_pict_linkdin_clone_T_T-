@@ -163,16 +163,33 @@ Set jobMatchScore, matchedSkills, missingSkills to empty arrays if not applicabl
   }
 
   if (!text && kimiKey) {
-    const openai = new OpenAI({
-      apiKey: kimiKey,
-      baseURL: process.env.KIMI_BASE_URL || "https://integrate.api.nvidia.com/v1",
-    });
-    const response = await openai.chat.completions.create({
-      model: process.env.KIMI_MODEL || "moonshotai/kimi-k2.5",
-      messages: [{ role: "user", content: prompt }],
-      temperature: 0.1,
-    });
-    text = response.choices[0]?.message?.content?.trim() ?? "";
+    const trimmedKey = kimiKey.trim();
+    const baseUrl = (process.env.KIMI_BASE_URL || "https://integrate.api.nvidia.com/v1").trim();
+    const isMoonshot = baseUrl.includes("api.moonshot");
+    const model = process.env.KIMI_MODEL || (isMoonshot ? "kimi-k2-turbo-preview" : "moonshotai/kimi-k2.5");
+    try {
+      const openai = new OpenAI({ apiKey: trimmedKey, baseURL: baseUrl });
+      const response = await openai.chat.completions.create({
+        model,
+        messages: [{ role: "user", content: prompt }],
+        temperature: 0.1,
+      });
+      text = response.choices[0]?.message?.content?.trim() ?? "";
+    } catch (e) {
+      if (baseUrl.includes("api.moonshot.ai") && (e as any)?.status === 401) {
+        console.warn("[ATS] Moonshot .ai returned 401, trying .cn (China platform)");
+        try {
+          const openaiCn = new OpenAI({ apiKey: trimmedKey, baseURL: "https://api.moonshot.cn/v1" });
+          const res = await openaiCn.chat.completions.create({
+            model: process.env.KIMI_MODEL || "kimi-k2-turbo-preview",
+            messages: [{ role: "user", content: prompt }],
+            temperature: 0.1,
+          });
+          text = res.choices[0]?.message?.content?.trim() ?? "";
+        } catch {}
+      }
+      if (!text) throw e;
+    }
   }
 
   if (!text) throw new Error("All AI providers failed (OpenRouter, Gemini, Kimi). Check API keys and limits.");

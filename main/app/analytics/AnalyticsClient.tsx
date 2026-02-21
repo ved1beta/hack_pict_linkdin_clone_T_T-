@@ -284,6 +284,7 @@ export default function AnalyticsClient({ data }: AnalyticsClientProps) {
         resumeUploads={resumeUploads}
         atsScores={atsScoresForGraphs}
         gitRepos={git?.repos || []}
+        githubUsername={user.githubUsername}
         gitAnalysis={git?.latestAnalysis || null}
       />
 

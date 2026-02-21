@@ -57,6 +57,11 @@ export interface IUser {
   
   // College Verification (for students)
   collegeVerification?: ICollegeVerification;
+
+  // GitHub & LinkedIn for resume generation
+  githubUsername?: string;
+  linkedInUrl?: string;
+  linkedInText?: string;
   
   codingProfiles?: {
     leetcode?: {
@@ -175,6 +180,11 @@ const UserSchema = new Schema<IUserDocument>(
       },
     ],
     
+    // GitHub & LinkedIn
+    githubUsername: String,
+    linkedInUrl: String,
+    linkedInText: String,
+
     // College Verification
     collegeVerification: {
       collegeName: {

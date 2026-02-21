@@ -6,6 +6,8 @@ import CodingProfilesForm from "@/components/CodingProfilesForm";
 import ResumeUploadATS from "@/components/ResumeUploadATS";
 import GitReposForm from "@/components/GitReposForm";
 import CollegeVerificationForm from "@/components/CollegeVerificationForm";
+import GitHubConnect from "@/components/GitHubConnect";
+import LinkedInConnect from "@/components/LinkedInConnect";
 import { Settings } from "lucide-react";
 
 export default async function SettingsPage() {
@@ -35,20 +37,26 @@ export default async function SettingsPage() {
             <h1 className="text-3xl font-bold">Settings</h1>
           </div>
           <p className="text-muted-foreground">
-            Manage your coding profiles and preferences
+            Connect GitHub & LinkedIn, manage repos, and upload your resume
           </p>
         </div>
 
         {serializedUser.userType === "student" && (
           <>
             <div className="mb-8">
+              <GitHubConnect />
+            </div>
+            <div className="mb-8">
+              <LinkedInConnect />
+            </div>
+            <div className="mb-8">
+              <GitReposForm />
+            </div>
+            <div className="mb-8">
               <CollegeVerificationForm />
             </div>
             <div className="mb-8">
               <ResumeUploadATS />
-            </div>
-            <div className="mb-8">
-              <GitReposForm />
             </div>
           </>
         )}
