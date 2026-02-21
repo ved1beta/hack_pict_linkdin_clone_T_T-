@@ -32,9 +32,10 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json().catch(() => ({}));
+    // Only call Clerk API if username is not in the request (it's slow)
     const githubUsername =
       body.githubUsername?.trim() ||
-      (await getGitHubUsernameFromClerk(user.id));
+      (body.githubUsername === undefined ? await getGitHubUsernameFromClerk(user.id) : null);
 
     if (!githubUsername) {
       return NextResponse.json(
