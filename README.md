@@ -12,3 +12,4 @@ to do--
 6) try --- identify and give them fixes regaridng resume for specific job roles -- this contains tasks that can be completed to increase the ats score
 7) road map
 8) a progress graph job specific score and open soure contribution score and public repo score (in git tab) and improvements in the project
+9) reference of resume to the chat bot
