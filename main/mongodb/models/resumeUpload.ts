@@ -8,6 +8,7 @@ export interface IResumeUpload {
   mimeType: string;
   fileSize?: number;
   extractedText?: string;
+  source?: "file" | "github";
   createdAt: Date;
 }
 
@@ -22,6 +23,7 @@ const ResumeUploadSchema = new Schema<IResumeUploadDocument>(
     mimeType: { type: String, required: true },
     fileSize: Number,
     extractedText: String,
+    source: { type: String, enum: ["file", "github"], default: "file" },
   },
   { timestamps: true }
 );

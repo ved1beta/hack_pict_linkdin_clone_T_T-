@@ -3,6 +3,8 @@ import { currentUser } from "@clerk/nextjs/server";
 import connectDB from "@/mongodb/db";
 import { GitRepo } from "@/mongodb/models/gitRepo";
 import { GitAnalysis } from "@/mongodb/models/gitAnalysis";
+import { User } from "@/mongodb/models/user";
+import { fetchUserCommits } from "@/lib/github";
 import OpenAI from "openai";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
@@ -55,14 +57,23 @@ export async function POST() {
       );
     }
 
-    const repoInfos: { repoName: string; languages: string[]; description?: string }[] = [];
+    const dbUser = await User.findOne({ userId: user.id }).lean();
+    const githubUsername = (dbUser as any)?.githubUsername;
+
+    const repoInfos: { repoName: string; languages: string[]; description?: string; myCommits?: string[] }[] = [];
     for (const r of repos as any[]) {
       const info = await fetchRepoInfo(r.owner, r.repoName);
+      let myCommits: string[] = [];
+      if (githubUsername) {
+        const commits = await fetchUserCommits(r.owner, r.repoName, githubUsername, 10);
+        myCommits = commits.map((c) => c.message.split("\n")[0]);
+      }
       if (info) {
         repoInfos.push({
           repoName: r.repoName,
           languages: info.languages,
           description: info.description,
+          myCommits,
         });
       }
     }
@@ -70,7 +81,8 @@ export async function POST() {
     const summary = repoInfos
       .map(
         (r) =>
-          `- ${r.repoName}: ${r.languages.join(", ") || "N/A"}${r.description ? ` | ${r.description}` : ""}`
+          `- ${r.repoName}: ${r.languages.join(", ") || "N/A"}${r.description ? ` | ${r.description}` : ""}` +
+          (r.myCommits?.length ? `\n  My commits: ${r.myCommits.slice(0, 5).join("; ")}` : "")
       )
       .join("\n");
 
@@ -84,6 +96,7 @@ export async function POST() {
     }
 
     const prompt = `You are a senior developer reviewing a candidate's GitHub portfolio.
+The "My commits" shown are ONLY this candidate's commits (filtered by author). Other contributors' work is excluded.
 
 REPOSITORIES:
 ${summary}

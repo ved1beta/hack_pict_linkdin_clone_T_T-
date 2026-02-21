@@ -159,16 +159,35 @@ export default function AnalyticsClient({ data }: AnalyticsClientProps) {
   const [analyzingGit, setAnalyzingGit] = useState(false);
   const [expandedJob, setExpandedJob] = useState<string | null>(null);
 
+  const [analyzeStatus, setAnalyzeStatus] = useState("");
+  const [gitStatus, setGitStatus] = useState("");
+
   const runAnalysis = async (jobId?: string) => {
     setAnalyzing(true);
+    setAnalyzeStatus("Connecting to AI…");
     try {
-      await fetch("/api/ats/analyze", {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 60000);
+      setAnalyzeStatus("AI is analyzing your profile…");
+      const res = await fetch("/api/ats/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ jobId: jobId || undefined }),
+        signal: controller.signal,
       });
+      clearTimeout(timeout);
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Analysis failed");
+      }
+      setAnalyzeStatus("Done! Refreshing…");
       window.location.reload();
-    } catch (e) {
+    } catch (e: any) {
+      if (e?.name === "AbortError") {
+        setAnalyzeStatus("Timed out – AI is slow. Try again.");
+      } else {
+        setAnalyzeStatus(e instanceof Error ? e.message : "Analysis failed");
+      }
       console.error(e);
     } finally {
       setAnalyzing(false);
@@ -177,14 +196,27 @@ export default function AnalyticsClient({ data }: AnalyticsClientProps) {
 
   const runGitAnalysis = async () => {
     setAnalyzingGit(true);
+    setGitStatus("Fetching your commits from GitHub…");
     try {
-      const res = await fetch("/api/git/analyze", { method: "POST" });
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 60000);
+      setGitStatus("AI is analyzing your repos…");
+      const res = await fetch("/api/git/analyze", {
+        method: "POST",
+        signal: controller.signal,
+      });
+      clearTimeout(timeout);
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Analysis failed");
+      setGitStatus("Done! Refreshing…");
       window.location.reload();
-    } catch (e) {
+    } catch (e: any) {
+      if (e?.name === "AbortError") {
+        setGitStatus("Timed out – AI is slow. Try again.");
+      } else {
+        setGitStatus(e instanceof Error ? e.message : "Git analysis failed");
+      }
       console.error(e);
-      alert(e instanceof Error ? e.message : "Git analysis failed");
     } finally {
       setAnalyzingGit(false);
     }
@@ -207,29 +239,43 @@ export default function AnalyticsClient({ data }: AnalyticsClientProps) {
             Resume scores, job match analysis, and GitHub portfolio insights
           </p>
         </div>
-        <div className="flex gap-2">
-          <Button
-            onClick={() => runAnalysis()}
-            disabled={analyzing}
-            variant={tab === "resume" ? "default" : "outline"}
-            className={tab === "resume" ? "btn-primary" : ""}
-          >
-            <RefreshCw
-              className={`h-4 w-4 mr-2 ${analyzing ? "animate-spin" : ""}`}
-            />
-            {analyzing ? "Analyzing..." : "Analyze My Resume"}
-          </Button>
-          <Button
-            onClick={runGitAnalysis}
-            disabled={analyzingGit || gitRepos.length === 0}
-            variant={tab === "git" ? "default" : "outline"}
-            className={tab === "git" ? "btn-primary" : ""}
-          >
-            <Github
-              className={`h-4 w-4 mr-2 ${analyzingGit ? "animate-spin" : ""}`}
-            />
-            {analyzingGit ? "Analyzing..." : "Analyze My Git"}
-          </Button>
+        <div className="flex flex-col gap-2 items-end">
+          <div className="flex gap-2">
+            <Button
+              onClick={() => runAnalysis()}
+              disabled={analyzing}
+              variant={tab === "resume" ? "default" : "outline"}
+              className={tab === "resume" ? "btn-primary" : ""}
+            >
+              <RefreshCw
+                className={`h-4 w-4 mr-2 ${analyzing ? "animate-spin" : ""}`}
+              />
+              {analyzing ? "Analyzing..." : "Analyze My Resume"}
+            </Button>
+            <Button
+              onClick={runGitAnalysis}
+              disabled={analyzingGit || gitRepos.length === 0}
+              variant={tab === "git" ? "default" : "outline"}
+              className={tab === "git" ? "btn-primary" : ""}
+            >
+              <Github
+                className={`h-4 w-4 mr-2 ${analyzingGit ? "animate-spin" : ""}`}
+              />
+              {analyzingGit ? "Analyzing..." : "Analyze My Git"}
+            </Button>
+          </div>
+          {analyzing && analyzeStatus && (
+            <p className="text-xs text-muted-foreground animate-pulse">{analyzeStatus}</p>
+          )}
+          {analyzingGit && gitStatus && (
+            <p className="text-xs text-muted-foreground animate-pulse">{gitStatus}</p>
+          )}
+          {!analyzing && analyzeStatus && analyzeStatus.includes("failed") && (
+            <p className="text-xs text-destructive">{analyzeStatus}</p>
+          )}
+          {!analyzingGit && gitStatus && gitStatus.includes("failed") && (
+            <p className="text-xs text-destructive">{gitStatus}</p>
+          )}
         </div>
       </div>
 

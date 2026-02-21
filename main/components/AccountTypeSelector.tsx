@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { Button } from "./ui/button";
-import { GraduationCap, Briefcase } from "lucide-react";
+import { Input } from "./ui/input";
+import { GraduationCap, Briefcase, Github } from "lucide-react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 
@@ -16,6 +17,7 @@ interface AccountTypeSelectorProps {
 
 function AccountTypeSelector({ userId, email, firstName, lastName, imageUrl }: AccountTypeSelectorProps) {
   const [selected, setSelected] = useState<"student" | "recruiter" | null>(null);
+  const [githubUsername, setGithubUsername] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
@@ -40,11 +42,29 @@ function AccountTypeSelector({ userId, email, firstName, lastName, imageUrl }: A
           lastName,
           userImage: imageUrl,
           userType: selected,
+          ...(selected === "student" && githubUsername.trim() && { githubUsername: githubUsername.trim() }),
         }),
       });
 
       if (!response.ok) {
         throw new Error("Failed to setup account");
+      }
+
+      if (selected === "student" && githubUsername.trim()) {
+        toast.info("Connecting GitHub & generating your profile...");
+        const setupRes = await fetch("/api/github/setup", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ githubUsername: githubUsername.trim() }),
+        });
+        if (setupRes.ok) {
+          const setupData = await setupRes.json();
+          toast.success(`Added ${setupData.addedRepos || 0} pinned repo(s)`);
+          const genRes = await fetch("/api/github/generate-resume", { method: "POST" });
+          if (genRes.ok) {
+            toast.success("Resume generated from GitHub!");
+          }
+        }
       }
 
       toast.success(`Welcome! Your ${selected} account is ready 🎉`);
@@ -90,7 +110,7 @@ function AccountTypeSelector({ userId, email, firstName, lastName, imageUrl }: A
                 </p>
               </div>
               <ul className="text-sm text-muted-foreground space-y-1">
-                <li>✓ Upload resume</li>
+                <li>✓ Auto-profile from GitHub</li>
                 <li>✓ Join hackathon teams</li>
                 <li>✓ Apply for jobs</li>
                 <li>✓ Network with students</li>
@@ -130,6 +150,21 @@ function AccountTypeSelector({ userId, email, firstName, lastName, imageUrl }: A
             </div>
           </button>
         </div>
+
+        {selected === "student" && (
+          <div className="space-y-2 p-4 rounded-xl border border-border bg-secondary/30">
+            <label className="text-sm font-medium flex items-center gap-2">
+              <Github className="h-4 w-4" />
+              GitHub username (optional – auto-fills resume & repos)
+            </label>
+            <Input
+              placeholder="e.g. octocat"
+              value={githubUsername}
+              onChange={(e) => setGithubUsername(e.target.value)}
+              className="max-w-xs"
+            />
+          </div>
+        )}
 
         <Button
           onClick={handleSubmit}

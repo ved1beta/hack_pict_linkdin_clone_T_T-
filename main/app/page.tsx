@@ -31,6 +31,9 @@ async function Home() {
           <p className="text-xl text-muted-foreground">
             The student professional network. Connect, collaborate, and grow your career.
           </p>
+          <p className="text-sm text-muted-foreground">
+            Sign in with GitHub for auto-profile and resume generation.
+          </p>
           <Button className="btn-primary text-lg px-8 py-6">
             <SignInButton mode="modal" />
           </Button>
