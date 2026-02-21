@@ -21,6 +21,7 @@
     "@radix-ui/react-label": "^2.1.8",
     "@radix-ui/react-navigation-menu": "^1.1.4",
     "@radix-ui/react-slot": "^1.0.2",
+    "agenda": "^6.2.3",
     "cheerio": "^1.1.2",
     "class-variance-authority": "^0.7.0",
     "cloudinary": "^2.8.0",

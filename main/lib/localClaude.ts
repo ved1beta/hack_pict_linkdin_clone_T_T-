@@ -1,14 +1,21 @@
 /**
  * Local AI Analysis using Groq API (100% FREE, UNLIMITED)
  * No quota limits, blazingly fast, completely free
- * Runs analysis in browser without backend API calls
+ * Server-side only — uses Groq API
  */
 
 import Groq from "groq-sdk";
 
-const groq = new Groq({
-  apiKey: process.env.NEXT_PUBLIC_GROQ_API_KEY,
-});
+let groq: Groq | null = null;
+
+function getGroqClient(): Groq {
+  if (!groq) {
+    groq = new Groq({
+      apiKey: process.env.NEXT_PUBLIC_GROQ_API_KEY,
+    });
+  }
+  return groq;
+}
 
 /**
  * Analyze a resume against a job posting
@@ -49,7 +56,7 @@ Respond with ONLY valid JSON (no markdown, no code blocks, just raw JSON):
   "recommendation": "string"
 }`;
 
-  const message = await groq.chat.completions.create({
+  const message = await getGroqClient().chat.completions.create({
     messages: [{ role: "user", content: prompt }],
     model: "llama-3.3-70b-versatile",
   });
@@ -84,7 +91,7 @@ Respond with ONLY valid JSON (no markdown, no code blocks, just raw JSON):
   "recommendation": "string"
 }`;
 
-  const message = await groq.chat.completions.create({
+  const message = await getGroqClient().chat.completions.create({
     messages: [{ role: "user", content: prompt }],
     model: "llama-3.3-70b-versatile",
   });
@@ -136,7 +143,7 @@ Analyze the portfolio and respond with ONLY valid JSON (no markdown, no code blo
 
 Consider: tech stack diversity, project complexity, documentation, language usage.`;
 
-  const message = await groq.chat.completions.create({
+  const message = await getGroqClient().chat.completions.create({
     messages: [{ role: "user", content: prompt }],
     model: "llama-3.3-70b-versatile",
   });
@@ -160,7 +167,7 @@ export async function chatWithClaude(
   messages: Array<{ role: "user" | "assistant"; content: string }>,
   systemPrompt: string
 ): Promise<string> {
-  const message = await groq.chat.completions.create({
+  const message = await getGroqClient().chat.completions.create({
     messages: [
       { role: "system", content: systemPrompt },
       ...messages.map((m) => ({
