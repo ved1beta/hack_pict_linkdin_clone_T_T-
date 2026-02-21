@@ -11,6 +11,7 @@ import {
   GraduationCap,
   Settings,
   BarChart3,
+  FolderGit2,
 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "./ui/button";
@@ -75,6 +76,12 @@ async function Header() {
             icon={<GraduationCap className="h-5 w-5" />} 
             label="Mentor" 
             className="hidden lg:flex"
+          />
+          <NavLink 
+            href="/projects" 
+            icon={<FolderGit2 className="h-5 w-5" />} 
+            label="Projects" 
+            className="hidden md:flex"
           />
           <NavLink 
             href="/analytics" 

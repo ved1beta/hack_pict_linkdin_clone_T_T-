@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
+import AnalyticsGraphs from "./AnalyticsGraphs";
 import {
   BarChart3,
   TrendingUp,
@@ -26,6 +27,8 @@ interface AnalyticsClientProps {
     analyses: any[];
     applicationsWithScores: any[];
     latestGeneral: any;
+    resumeUploads?: { createdAt: string }[];
+    atsScoresForGraphs?: { createdAt: string; score: number }[];
     latestParsed?: {
       name?: string;
       skills: string[];
@@ -184,7 +187,7 @@ export default function AnalyticsClient({ data }: AnalyticsClientProps) {
     }
   };
 
-  const { analyses, applicationsWithScores, latestGeneral, latestParsed, stats, user, git } = data;
+  const { analyses, applicationsWithScores, latestGeneral, latestParsed, stats, user, git, resumeUploads = [], atsScoresForGraphs = [] } = data;
   const gitRepos = git?.repos || [];
   const gitAnalysis = git?.latestAnalysis || null;
 
@@ -226,6 +229,14 @@ export default function AnalyticsClient({ data }: AnalyticsClientProps) {
           </Button>
         </div>
       </div>
+
+      {/* Landscape Graphs - horizontally scrollable, auto-advance */}
+      <AnalyticsGraphs
+        resumeUploads={resumeUploads}
+        atsScores={atsScoresForGraphs}
+        gitRepos={git?.repos || []}
+        gitAnalysis={git?.latestAnalysis || null}
+      />
 
       {/* Tabs */}
       <div className="flex gap-2 border-b border-border pb-2">

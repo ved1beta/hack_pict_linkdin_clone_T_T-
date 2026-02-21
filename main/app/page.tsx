@@ -236,7 +236,7 @@ async function Home() {
       topSkills: user.skills?.slice(0, 3) || ["React", "JavaScript", "Node.js"],
       isConnected: currentUserFollowing.includes(user.userId),
     }))
-    .slice(0, 5);
+    .slice(0, 15);
 
   return (
     <div className="bg-background min-h-screen py-6">

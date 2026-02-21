@@ -4,8 +4,11 @@ import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Calendar, Mail, MapPin, Award, Briefcase, Star, GraduationCap } from "lucide-react";
+import { Calendar, Mail, MapPin, Award, Briefcase, Star, GraduationCap, BarChart3 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import dynamic from "next/dynamic";
+
+const AnalyticsGraphs = dynamic(() => import("@/app/analytics/AnalyticsGraphs"), { ssr: false });
 
 interface CandidateProfileModalProps {
   candidateId: string;
@@ -19,11 +22,13 @@ export default function CandidateProfileModal({
   onClose,
 }: CandidateProfileModalProps) {
   const [candidate, setCandidate] = useState<any>(null);
+  const [analytics, setAnalytics] = useState<any>(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (isOpen && candidateId) {
       fetchCandidate();
+      fetchAnalytics();
     }
   }, [isOpen, candidateId]);
 
@@ -37,6 +42,18 @@ export default function CandidateProfileModal({
       console.error("Failed to fetch candidate:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchAnalytics = async () => {
+    try {
+      const res = await fetch(`/api/candidate/${candidateId}/analytics`);
+      if (res.ok) {
+        const data = await res.json();
+        setAnalytics(data);
+      }
+    } catch (error) {
+      console.error("Failed to fetch analytics:", error);
     }
   };
 
@@ -171,6 +188,22 @@ export default function CandidateProfileModal({
                     </Badge>
                   ))}
                 </div>
+              </div>
+            )}
+
+            {/* Candidate Analytics - visible to recruiter */}
+            {analytics && (
+              <div className="border-t border-border pt-6">
+                <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                  <BarChart3 className="h-5 w-5 text-primary" />
+                  Candidate Insights
+                </h3>
+                <AnalyticsGraphs
+                  resumeUploads={analytics.resumeUploads || []}
+                  atsScores={analytics.atsScores || []}
+                  gitRepos={analytics.gitRepos || []}
+                  gitAnalysis={analytics.gitAnalysis || null}
+                />
               </div>
             )}
           </div>

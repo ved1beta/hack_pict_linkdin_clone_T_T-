@@ -102,10 +102,10 @@ Be constructive. Consider: tech stack diversity, project complexity, documentati
     if (kimiKey) {
       const openai = new OpenAI({
         apiKey: kimiKey,
-        baseURL: "https://kimi-k2.ai/api/v1",
+        baseURL: process.env.KIMI_BASE_URL || "https://integrate.api.nvidia.com/v1",
       });
       const response = await openai.chat.completions.create({
-        model: process.env.KIMI_MODEL || "kimi-k2-0905",
+        model: process.env.KIMI_MODEL || "moonshotai/kimi-k2.5",
         messages: [{ role: "user", content: prompt }],
         temperature: 0.2,
       });

@@ -3,7 +3,10 @@
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
-import { Mail, Calendar, Download, CheckCircle, XCircle, Clock, User, Star, Award, MapPin, Briefcase, GraduationCap, StarOff } from "lucide-react";
+import { Mail, Calendar, Download, CheckCircle, XCircle, Clock, User, Star, Award, MapPin, Briefcase, GraduationCap, StarOff, BarChart3 } from "lucide-react";
+import dynamic from "next/dynamic";
+
+const AnalyticsGraphs = dynamic(() => import("@/app/analytics/AnalyticsGraphs"), { ssr: false });
 import ReactTimeago from "react-timeago";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
@@ -35,6 +38,7 @@ function ApplicantCard({ applicant, jobId, companyName }: ApplicantCardProps) {
   const [notes, setNotes] = useState("");
   const [recommendations, setRecommendations] = useState<any[]>([]);
   const [loadingRecommendations, setLoadingRecommendations] = useState(true);
+  const [analytics, setAnalytics] = useState<any>(null);
   
   const isRecommended = recommendations.some(rec => rec.companyName === companyName);
 
@@ -71,13 +75,20 @@ function ApplicantCard({ applicant, jobId, companyName }: ApplicantCardProps) {
 
   const fetchCandidate = async () => {
     setLoadingProfile(true);
+    setAnalytics(null);
     try {
-      const res = await fetch(`/api/candidate/${applicant.userId}`);
-      const data = await res.json();
-      setCandidate(data.candidate);
-      
-      if (data.candidate?.recommendations) {
-        setRecommendations(data.candidate.recommendations);
+      const [candRes, analyticsRes] = await Promise.all([
+        fetch(`/api/candidate/${applicant.userId}`),
+        fetch(`/api/candidate/${applicant.userId}/analytics`),
+      ]);
+      const candData = await candRes.json();
+      setCandidate(candData.candidate);
+      if (candData.candidate?.recommendations) {
+        setRecommendations(candData.candidate.recommendations);
+      }
+      if (analyticsRes.ok) {
+        const analyticsData = await analyticsRes.json();
+        setAnalytics(analyticsData);
       }
     } catch (error) {
       console.error("Failed to fetch candidate:", error);
@@ -434,6 +445,22 @@ function ApplicantCard({ applicant, jobId, companyName }: ApplicantCardProps) {
                         <Badge key={idx} variant="secondary">{skill}</Badge>
                       ))}
                     </div>
+                  </div>
+                )}
+
+                {/* Candidate Analytics - visible to recruiter */}
+                {analytics && (
+                  <div className="border-t border-border pt-6">
+                    <h4 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                      <BarChart3 className="h-5 w-5 text-primary" />
+                      Candidate Insights
+                    </h4>
+                    <AnalyticsGraphs
+                      resumeUploads={analytics.resumeUploads || []}
+                      atsScores={analytics.atsScores || []}
+                      gitRepos={analytics.gitRepos || []}
+                      gitAnalysis={analytics.gitAnalysis || null}
+                    />
                   </div>
                 )}
               </div>

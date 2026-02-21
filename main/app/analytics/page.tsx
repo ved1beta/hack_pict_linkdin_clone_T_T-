@@ -9,7 +9,22 @@ import { ParsedResume } from "@/mongodb/models/parsedResume";
 import { GitRepo } from "@/mongodb/models/gitRepo";
 import { GitAnalysis } from "@/mongodb/models/gitAnalysis";
 import { Job } from "@/mongodb/models/job";
-import AnalyticsClient from "./AnalyticsClient";
+import dynamic from "next/dynamic";
+
+const AnalyticsClient = dynamic(() => import("./AnalyticsClient"), {
+  ssr: false,
+  loading: () => (
+    <div className="max-w-6xl mx-auto px-4 py-8 animate-pulse space-y-6">
+      <div className="h-12 w-64 bg-secondary rounded-xl" />
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        {[1, 2, 3, 4].map((i) => (
+          <div key={i} className="h-36 bg-secondary rounded-xl" />
+        ))}
+      </div>
+      <div className="h-64 bg-secondary rounded-xl" />
+    </div>
+  ),
+});
 
 async function AnalyticsPage() {
   const clerkUser = await currentUser();
@@ -23,9 +38,10 @@ async function AnalyticsPage() {
   // Students only - recruiters don't need this
   if (dbUser.userType === "recruiter") redirect("/");
 
-  const [analyses, atsScores, latestUpload, gitRepos, gitAnalyses] = await Promise.all([
+  const [analyses, atsScores, allUploads, latestUpload, gitRepos, gitAnalyses] = await Promise.all([
     ResumeAnalysis.find({ userId: clerkUser.id }).sort({ analyzedAt: -1 }).lean(),
     AtsScore.find({ userId: clerkUser.id }).sort({ createdAt: -1 }).lean(),
+    ResumeUpload.find({ userId: clerkUser.id }).sort({ createdAt: 1 }).lean(),
     ResumeUpload.findOne({ userId: clerkUser.id }).sort({ createdAt: -1 }).lean(),
     GitRepo.find({ userId: clerkUser.id }).sort({ createdAt: -1 }).lean(),
     GitAnalysis.find({ userId: clerkUser.id }).sort({ analyzedAt: -1 }).limit(1).lean(),
@@ -180,6 +196,8 @@ async function AnalyticsPage() {
       ? JSON.parse(JSON.stringify(latestGeneral || latestFromUpload))
       : null,
     latestParsed: latestParsed ? JSON.parse(JSON.stringify(latestParsed)) : null,
+    resumeUploads: (allUploads as any[]).map((u) => ({ createdAt: u.createdAt })),
+    atsScoresForGraphs: (atsScores as any[]).map((s) => ({ createdAt: s.createdAt, score: s.score })),
     stats: {
       totalAnalyses: analyses.length + atsScores.length,
       totalApplications: applicationsWithScores.length,
@@ -197,6 +215,7 @@ async function AnalyticsPage() {
         url: r.url,
         repoName: r.repoName,
         owner: r.owner,
+        languages: (latestGitAnalysis as any)?.repoSummary?.find((rs: any) => rs.repoName === r.repoName)?.languages || [],
       })),
       latestAnalysis: latestGitAnalysis
         ? {

@@ -104,9 +104,9 @@ export default function FriendSuggestions({ suggestions, currentUserId }: Friend
         </h3>
       </div>
 
-      {/* Suggestions List */}
-      <div className="space-y-4">
-        {suggestions.slice(0, 5).map((person) => {
+      {/* Suggestions List - scrollable */}
+      <div className="space-y-4 max-h-[420px] overflow-y-auto overflow-x-hidden pr-1 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-border">
+        {suggestions.map((person) => {
           const isFollowing = followStatus[person.userId];
           const isLoading = loadingStates[person.userId];
 
@@ -196,7 +196,7 @@ export default function FriendSuggestions({ suggestions, currentUserId }: Friend
       </div>
 
       {/* View All Link */}
-      {suggestions.length > 5 && (
+      {suggestions.length > 10 && (
         <Link 
           href="/network" 
           className="block text-center text-sm text-primary hover:underline font-medium pt-2"

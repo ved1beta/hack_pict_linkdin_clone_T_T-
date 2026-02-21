@@ -262,13 +262,20 @@ export default function MentorshipPage() {
                   </span>
                 )}
               </div>
-              <div className="rounded-xl overflow-hidden border border-border bg-secondary/30">
-                <iframe
-                  src={roadmap.url}
-                  className="w-full h-[400px] border-0"
-                  title="Career Roadmap"
-                  sandbox="allow-scripts allow-same-origin"
-                />
+              <div className="rounded-xl overflow-hidden border border-border bg-secondary/30 p-6">
+                <p className="text-sm text-muted-foreground mb-4">
+                  roadmap.sh does not allow embedding. Click below to open your personalized roadmap in a new tab.
+                </p>
+                <a
+                  href={roadmap.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 btn-primary w-full justify-center py-4"
+                >
+                  <Map className="h-5 w-5" />
+                  Open {roadmap.displayName} Roadmap in New Tab
+                  <ExternalLink className="h-5 w-5" />
+                </a>
               </div>
             </div>
           ) : (

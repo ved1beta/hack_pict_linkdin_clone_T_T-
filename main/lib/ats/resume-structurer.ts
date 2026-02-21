@@ -71,10 +71,10 @@ async function structureWithKimi(
 ): Promise<StructuredResume> {
   const openai = new OpenAI({
     apiKey,
-    baseURL: "https://kimi-k2.ai/api/v1",
+    baseURL: process.env.KIMI_BASE_URL || "https://integrate.api.nvidia.com/v1",
   });
   const response = await openai.chat.completions.create({
-    model: process.env.KIMI_MODEL || "kimi-k2-0905",
+    model: process.env.KIMI_MODEL || "moonshotai/kimi-k2.5",
     messages: [
       {
         role: "system",
