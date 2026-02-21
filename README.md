@@ -15,4 +15,4 @@ to do--
 9) reference of resume to the chat bot
 
 10) soft skills
-11) 
+11) team tagging
