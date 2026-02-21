@@ -2,11 +2,10 @@
 
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { Button } from "./ui/button";
-import { ImageIcon, X, Send } from "lucide-react";
+import { ImageIcon, XIcon } from "lucide-react";
 import { useUser } from "@clerk/nextjs";
 import { useState, useRef, useEffect } from "react";
 import { toast } from "sonner";
-import React from "react";
 
 interface MentionUser {
   userId: string;
@@ -134,7 +133,9 @@ function PostForm() {
     }
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
     if (!postContent.trim() && !selectedFile) {
       toast.error("Please write something or add an image");
       return;
@@ -160,7 +161,7 @@ function PostForm() {
         throw new Error(data.error || "Failed to create post");
       }
 
-      toast.success("Post created successfully!");
+      toast.success("Post created successfully! 🎉");
       setPostContent("");
       setSelectedFile(null);
       setPreviewUrl(null);
@@ -179,111 +180,109 @@ function PostForm() {
   if (!user) return null;
 
   return (
-    <div className="bg-card rounded-xl border border-white/5 p-4 sm:p-5 mb-6 hover:border-white/10 transition-colors">
-      <div className="flex gap-4">
-        <Avatar className="h-10 w-10 ring-2 ring-white/5 hidden sm:block">
-          <AvatarImage src={user.imageUrl} />
-          <AvatarFallback>
-            {user.firstName?.charAt(0)}
-          </AvatarFallback>
-        </Avatar>
+    <div className="card-modern p-6">
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="flex items-start space-x-4">
+          <Avatar className="h-12 w-12">
+            <AvatarImage src={user.imageUrl} />
+            <AvatarFallback>
+              {user.firstName?.charAt(0)}
+              {user.lastName?.charAt(0)}
+            </AvatarFallback>
+          </Avatar>
 
-        <div className="flex-1 space-y-3">
-          <div className="relative">
+          <div className="flex-1 relative">
             <textarea
               ref={textareaRef}
               value={postContent}
               onChange={handleTextChange}
               onKeyDown={handleKeyDown}
-              placeholder="What's on your mind?..."
-              className="w-full min-h-[80px] bg-transparent border-none p-0 
-                       placeholder:text-muted-foreground/50 text-foreground resize-none 
-                       focus:ring-0 text-base leading-relaxed"
+              placeholder="What's on your mind? (Type @ to mention someone)"
+              className="w-full min-h-[100px] p-3 bg-secondary border border-border rounded-lg 
+                       focus:ring-2 focus:ring-primary focus:border-transparent 
+                       resize-none outline-none"
               disabled={isPosting}
             />
 
-            {/* Mention Suggestions */}
+            {/* Mention Suggestions Dropdown */}
             {showMentions && mentionUsers.length > 0 && (
-              <div className="absolute z-50 w-full mt-1 bg-popover border border-white/10 rounded-xl shadow-2xl max-h-60 overflow-y-auto">
+              <div className="absolute z-50 w-full mt-1 bg-card border border-border rounded-lg shadow-lg max-h-60 overflow-y-auto">
                 {mentionUsers.map((mentionUser, index) => (
                   <button
                     key={mentionUser.userId}
                     type="button"
                     onClick={() => insertMention(mentionUser)}
-                    className={`w-full flex items-center gap-3 px-4 py-2 hover:bg-white/5 transition-colors ${
-                      index === selectedMentionIndex ? "bg-white/5" : ""
+                    className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-secondary transition-colors ${
+                      index === selectedMentionIndex ? "bg-secondary" : ""
                     }`}
                   >
                     <Avatar className="h-8 w-8">
                       <AvatarImage src={mentionUser.imageUrl} />
-                      <AvatarFallback>{mentionUser.firstName?.charAt(0)}</AvatarFallback>
+                      <AvatarFallback>
+                        {mentionUser.firstName?.charAt(0)}
+                        {mentionUser.lastName?.charAt(0)}
+                      </AvatarFallback>
                     </Avatar>
                     <div className="text-left">
-                      <p className="text-sm font-medium">
+                      <p className="text-sm font-semibold">
                         {mentionUser.firstName} {mentionUser.lastName}
                       </p>
-                      <p className="text-xs text-muted-foreground">@{mentionUser.firstName?.toLowerCase()}</p>
                     </div>
                   </button>
                 ))}
               </div>
             )}
           </div>
-
-          {/* Image Preview */}
-          {previewUrl && (
-            <div className="relative rounded-lg overflow-hidden border border-white/5 bg-secondary/30 inline-block">
-              <img
-                src={previewUrl}
-                alt="Preview"
-                className="max-h-60 w-auto object-cover"
-              />
-              <button
-                type="button"
-                onClick={removeImage}
-                className="absolute top-2 right-2 p-1.5 bg-black/60 hover:bg-black/80 
-                         rounded-full transition-colors text-white backdrop-blur-sm"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-          )}
-
-          <div className="flex items-center justify-between pt-3 border-t border-white/5">
-            <div className="flex items-center gap-2">
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                onChange={handleFileChange}
-                className="hidden"
-                disabled={isPosting}
-              />
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className="p-2 rounded-full text-primary hover:bg-primary/10 transition-colors"
-                title="Add Image"
-                disabled={isPosting}
-              >
-                <ImageIcon className="h-5 w-5" />
-              </button>
-            </div>
-
-            <Button
-              onClick={handleSubmit}
-              disabled={isPosting || (!postContent.trim() && !selectedFile)}
-              className="bg-primary hover:bg-primary/90 text-white rounded-full px-5 h-9 text-sm font-medium"
-            >
-              {isPosting ? "Posting..." : (
-                <>
-                  Post <Send className="h-3.5 w-3.5 ml-2 opacity-70" />
-                </>
-              )}
-            </Button>
-          </div>
         </div>
-      </div>
+
+        {/* Image Preview */}
+        {previewUrl && (
+          <div className="relative">
+            <img
+              src={previewUrl}
+              alt="Preview"
+              className="max-h-96 rounded-lg w-full object-cover"
+            />
+            <button
+              type="button"
+              onClick={removeImage}
+              className="absolute top-2 right-2 p-2 bg-black/50 hover:bg-black/70 
+                       rounded-full transition-colors"
+            >
+              <XIcon className="h-5 w-5 text-white" />
+            </button>
+          </div>
+        )}
+
+        {/* Actions */}
+        <div className="flex items-center justify-between pt-2 border-t border-border">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleFileChange}
+            className="hidden"
+            disabled={isPosting}
+          />
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="flex items-center space-x-2 text-muted-foreground hover:text-primary transition-colors"
+            disabled={isPosting}
+          >
+            <ImageIcon className="h-5 w-5" />
+            <span className="text-sm">Add Image</span>
+          </button>
+
+          <Button
+            type="submit"
+            className="btn-primary"
+            disabled={isPosting || (!postContent.trim() && !selectedFile)}
+          >
+            {isPosting ? "Posting..." : "Post"}
+          </Button>
+        </div>
+      </form>
     </div>
   );
 }
