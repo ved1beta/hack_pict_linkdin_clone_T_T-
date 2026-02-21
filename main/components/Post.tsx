@@ -6,6 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { Heart, MessageCircle, Repeat2, Send, Trash2, MoreHorizontal } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import CommentFeed from "./CommentFeed";
@@ -18,7 +19,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
-import React from "react";
 
 // Helper function to parse mentions
 function parsePostContent(content: string) {
@@ -54,7 +54,7 @@ function parsePostContent(content: string) {
   return parts;
 }
 
-// Client-side time formatter
+// Client-side time formatter to avoid hydration issues
 function TimeAgo({ date }: { date: Date }) {
   const [timeAgo, setTimeAgo] = useState<string>("");
 
@@ -62,20 +62,20 @@ function TimeAgo({ date }: { date: Date }) {
     const updateTime = () => {
       const seconds = Math.floor((Date.now() - new Date(date).getTime()) / 1000);
       
-      if (seconds < 60) return `${seconds}s`;
-      if (seconds < 3600) return `${Math.floor(seconds / 60)}m`;
-      if (seconds < 86400) return `${Math.floor(seconds / 3600)}h`;
-      if (seconds < 604800) return `${Math.floor(seconds / 86400)}d`;
+      if (seconds < 60) return `${seconds}s ago`;
+      if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
+      if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
+      if (seconds < 604800) return `${Math.floor(seconds / 86400)}d ago`;
       return new Date(date).toLocaleDateString();
     };
 
     setTimeAgo(updateTime());
-    const interval = setInterval(() => setTimeAgo(updateTime()), 60000);
+    const interval = setInterval(() => setTimeAgo(updateTime()), 60000); // Update every minute
 
     return () => clearInterval(interval);
   }, [date]);
 
-  return <span suppressHydrationWarning>{timeAgo || "now"}</span>;
+  return <span suppressHydrationWarning>{timeAgo || "Just now"}</span>;
 }
 
 function Post({ post }: { post: IPostDocument }) {
@@ -117,7 +117,9 @@ function Post({ post }: { post: IPostDocument }) {
         `/api/posts/${post._id}/${liked ? "unlike" : "like"}`,
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+          },
           body: JSON.stringify({ userId: user.id }),
         }
       );
@@ -135,148 +137,163 @@ function Post({ post }: { post: IPostDocument }) {
   };
 
   const handleDelete = async () => {
-    const confirmed = window.confirm("Delete this post?");
+    const confirmed = window.confirm("Are you sure you want to delete this post?");
     if (!confirmed) return;
 
     try {
       await deletePostAction(String(post._id));
-      toast.success("Post deleted");
+      toast.success("Post deleted successfully!");
     } catch (error) {
-      toast.error("Failed to delete");
+      toast.error("Failed to delete post");
     }
   };
 
   const contentParts = post.text ? parsePostContent(post.text) : [];
 
   return (
-    <div className="bg-card rounded-xl border border-white/5 p-4 sm:p-5 hover:border-white/10 transition-colors">
-      {/* Header */}
-      <div className="flex items-start justify-between mb-3">
+    <div className="post-card space-y-4">
+      {/* Post Header */}
+      <div className="flex items-start justify-between">
         <Link 
           href={`/user/${post.user.userId}`}
-          className="flex items-center gap-3 group"
+          className="flex items-center space-x-3 hover:opacity-80 transition-opacity"
         >
-          <Avatar className="h-10 w-10 ring-2 ring-white/5 group-hover:ring-primary/20 transition-all">
+          <Avatar className="h-12 w-12 ring-2 ring-primary/20">
             <AvatarImage src={post.user.userImage} />
-            <AvatarFallback className="bg-secondary text-xs">
+            <AvatarFallback className="bg-gradient-to-br from-primary to-accent text-white font-semibold">
               {post.user.firstName?.charAt(0)}
+              {post.user.lastName?.charAt(0)}
             </AvatarFallback>
           </Avatar>
 
-          <div className="leading-tight">
-            <div className="flex items-center gap-2">
-              <span className="font-semibold text-sm group-hover:text-primary transition-colors">
+          <div>
+            <div className="flex items-center space-x-2">
+              <p className="font-semibold text-foreground hover:text-primary cursor-pointer transition-colors">
                 {post.user.firstName} {post.user.lastName}
-              </span>
+              </p>
               {isAuthor && (
-                <Badge variant="outline" className="text-[10px] px-1 py-0 h-4 border-primary/20 text-primary/80">
-                  You
+                <Badge variant="secondary" className="text-xs">
+                  Author
                 </Badge>
               )}
             </div>
-            <span className="text-xs text-muted-foreground flex items-center gap-1">
-              <span>@{post.user.firstName?.toLowerCase()}</span>
-              <span>·</span>
-              <TimeAgo date={new Date(post.createdAt)} />
-            </span>
+            <p className="text-xs text-muted-foreground">
+              @{post.user.firstName?.toLowerCase() || "user"} • <TimeAgo date={new Date(post.createdAt)} />
+            </p>
           </div>
         </Link>
 
         {isAuthor && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8 -mr-2 text-muted-foreground hover:text-foreground">
+              <Button variant="ghost" size="icon" className="h-8 w-8">
                 <MoreHorizontal className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="bg-popover border-white/10">
-              <DropdownMenuItem onClick={handleDelete} className="text-red-400 focus:text-red-400 focus:bg-red-400/10 cursor-pointer">
+            <DropdownMenuContent align="end" className="bg-card border-border">
+              <DropdownMenuItem 
+                onClick={handleDelete}
+                className="text-destructive focus:text-destructive cursor-pointer"
+              >
                 <Trash2 className="h-4 w-4 mr-2" />
-                Delete
+                Delete Post
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         )}
       </div>
 
-      {/* Content */}
-      <div className="space-y-3 mb-4 pl-[3.25rem]"> {/* Indent content to align with text, not avatar */}
+      {/* Post Content with Mentions */}
+      <div className="space-y-3">
         {post.text && (
-          <p className="text-sm leading-relaxed whitespace-pre-wrap break-words text-foreground/90">
+          <p className="text-foreground whitespace-pre-wrap break-words">
             {contentParts.map((part, index) => {
               if (part.type === "mention") {
                 return (
                   <Link
                     key={index}
                     href={`/user/${part.userId}`}
-                    className="text-primary hover:underline font-medium"
+                    className="text-primary hover:underline font-semibold inline-block"
                     onClick={(e) => e.stopPropagation()}
                   >
                     @{part.content}
                   </Link>
                 );
               }
-              return <React.Fragment key={index}>{part.content}</React.Fragment>;
+              return <span key={index}>{part.content}</span>;
             })}
           </p>
         )}
 
         {post.imageUrl && (
-          <div className="relative rounded-lg overflow-hidden border border-white/5 bg-secondary/30 mt-2">
+          <div className="relative rounded-xl overflow-hidden border border-border group">
             <img
               src={post.imageUrl}
-              alt="Post attachment"
-              className="w-full object-cover max-h-[500px]"
-              loading="lazy"
+              alt="Post image"
+              className="w-full object-cover hover:scale-105 transition-transform duration-300"
             />
           </div>
         )}
       </div>
 
-      {/* Actions */}
-      <div className="flex items-center justify-between pl-[3.25rem]">
-        <div className="flex items-center gap-4 sm:gap-6">
-          <button 
-            onClick={handleLike}
-            className={`group flex items-center gap-1.5 text-xs font-medium transition-colors ${
-              liked ? "text-rose-500" : "text-muted-foreground hover:text-rose-500"
-            }`}
-          >
-            <div className={`p-1.5 rounded-full group-hover:bg-rose-500/10 transition-colors ${liked ? "bg-rose-500/10" : ""}`}>
-              <Heart className={`h-4 w-4 ${liked ? "fill-current" : ""}`} />
-            </div>
-            <span>{likes?.length || 0}</span>
-          </button>
-
-          <button 
-            onClick={toggleComments}
-            className="group flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-blue-400 transition-colors"
-          >
-            <div className="p-1.5 rounded-full group-hover:bg-blue-400/10 transition-colors">
-              <MessageCircle className="h-4 w-4" />
-            </div>
-            <span>{post.comments?.length || 0}</span>
-          </button>
-
-          <button className="group flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-green-400 transition-colors">
-            <div className="p-1.5 rounded-full group-hover:bg-green-400/10 transition-colors">
-              <Repeat2 className="h-4 w-4" />
-            </div>
-          </button>
-        </div>
-
-        <button className="text-muted-foreground hover:text-foreground transition-colors p-1.5 rounded-full hover:bg-white/5">
-          <Send className="h-4 w-4" />
-        </button>
+      {/* Post Stats */}
+      <div className="flex items-center justify-between text-sm text-muted-foreground pt-2 border-t border-border">
+        <span className="hover:underline cursor-pointer">
+          {likes?.length || 0} likes
+        </span>
+        <span className="hover:underline cursor-pointer" onClick={toggleComments}>
+          {post.comments?.length || 0} comments
+        </span>
       </div>
 
-      {/* Comments */}
+      {/* Action Buttons */}
+      <div className="flex items-center justify-around pt-2 border-t border-border">
+        <Button
+          variant="ghost"
+          size="sm"
+          className={`flex items-center space-x-1.5 transition-colors ${
+            liked ? "text-red-500 hover:text-red-600" : "text-muted-foreground hover:text-primary"
+          }`}
+          onClick={handleLike}
+        >
+          <Heart className={`h-5 w-5 ${liked ? "fill-current" : ""}`} />
+          <span className="text-sm">Like</span>
+        </Button>
+
+        <Button
+          variant="ghost"
+          size="sm"
+          className="flex items-center space-x-1.5 text-muted-foreground hover:text-primary"
+          onClick={toggleComments}
+        >
+          <MessageCircle className="h-5 w-5" />
+          <span className="text-sm">Comment</span>
+        </Button>
+
+        <Button
+          variant="ghost"
+          size="sm"
+          className="flex items-center space-x-1.5 text-muted-foreground hover:text-green-500"
+        >
+          <Repeat2 className="h-5 w-5" />
+          <span className="text-sm">Repost</span>
+        </Button>
+
+        <Button
+          variant="ghost"
+          size="sm"
+          className="flex items-center space-x-1.5 text-muted-foreground hover:text-blue-500"
+        >
+          <Send className="h-5 w-5" />
+          <span className="text-sm">Share</span>
+        </Button>
+      </div>
+
+      {/* Comments Section */}
       {isCommentsOpen && (
-        <div className="mt-4 pl-[3.25rem] pt-4 border-t border-white/5 animate-in slide-in-from-top-1">
+        <div className="space-y-4 pt-4 border-t border-border animate-in slide-in-from-top-2">
           <CommentForm postId={String(post._id)} />
-          <div className="mt-4">
-            <CommentFeed post={post} />
-          </div>
+          <CommentFeed post={post} />
         </div>
       )}
     </div>

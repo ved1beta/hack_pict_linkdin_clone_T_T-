@@ -5,6 +5,8 @@ import {
   MessagesSquare,
   SearchIcon,
   UsersIcon,
+  Zap,
+  Trophy,
   Flame,
   GraduationCap,
   Settings,
@@ -12,99 +14,134 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "./ui/button";
-import { HxLogo } from "./HxLogo";
 
 async function Header() {
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-white/5 bg-background/80 backdrop-blur-xl">
-      <div className="flex items-center justify-between h-14 max-w-7xl mx-auto px-4 lg:px-6">
-        {/* Left: Logo & Search */}
-        <div className="flex items-center gap-6">
-          <Link href="/" className="flex items-center gap-2 group">
-            <HxLogo className="h-9 w-9" />
-            <span className="font-semibold text-lg tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-violet-400 hidden sm:block group-hover:opacity-80 transition-opacity">
-              Hx
-            </span>
-          </Link>
+    <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <div className="flex items-center justify-between h-16 max-w-7xl mx-auto px-4">
+        {/* Logo */}
+        <Link href="/" className="flex items-center space-x-2 hover:opacity-80 transition-opacity">
+          <div className="bg-gradient-to-br from-primary to-accent rounded-xl p-2">
+            <Zap className="h-6 w-6 text-white" />
+          </div>
+          <span className="font-bold text-xl gradient-text hidden sm:block">
+            HEXjuy&apos;s
+          </span>
+        </Link>
 
-          {/* Minimal Search - visible on larger screens */}
-          <div className="hidden md:flex items-center relative w-64 group">
-            <SearchIcon className="absolute left-3 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+        {/* Search */}
+        <div className="flex-1 max-w-md mx-4">
+          <form className="relative">
+            <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <input
               type="text"
-              placeholder="Search..."
-              className="w-full pl-9 pr-4 py-1.5 bg-secondary/50 border border-transparent 
-                       hover:bg-secondary/80 focus:bg-background focus:border-primary/20 
-                       rounded-lg text-sm transition-all duration-200 outline-none"
+              placeholder="Search posts, teams, or people..."
+              className="w-full pl-10 pr-4 py-2 bg-secondary border border-border rounded-full 
+                       focus:ring-2 focus:ring-primary focus:border-transparent 
+                       transition-all duration-200 outline-none text-sm"
             />
-          </div>
+          </form>
         </div>
 
-        {/* Center: Navigation - streamlined */}
-        <nav className="flex items-center gap-1 sm:gap-2">
-          <NavLink href="/" icon={<HomeIcon className="h-[1.2rem] w-[1.2rem]" />} active />
-          <NavLink href="/network" icon={<UsersIcon className="h-[1.2rem] w-[1.2rem]" />} />
-          <NavLink href="/jobs" icon={<Briefcase className="h-[1.2rem] w-[1.2rem]" />} />
-          <NavLink href="/swipe" icon={<Flame className="h-[1.2rem] w-[1.2rem]" />} badge="New" />
-          <NavLink href="/messages" icon={<MessagesSquare className="h-[1.2rem] w-[1.2rem]" />} />
-          
-          {/* Collapsible/More Menu for mobile/tablet could go here */}
-          <div className="hidden lg:flex items-center gap-1">
-             <NavLink href="/mentorship" icon={<GraduationCap className="h-[1.2rem] w-[1.2rem]" />} />
-             <NavLink href="/analytics" icon={<BarChart3 className="h-[1.2rem] w-[1.2rem]" />} />
-          </div>
-        </nav>
+        {/* Navigation */}
+        <nav className="flex items-center space-x-1">
+          <NavLink href="/" icon={<HomeIcon className="h-5 w-5" />} label="Home" />
+          <NavLink 
+            href="/network" 
+            icon={<UsersIcon className="h-5 w-5" />} 
+            label="Network" 
+            className="hidden md:flex"
+          />
+          <NavLink 
+            href="/jobs" 
+            icon={<Briefcase className="h-5 w-5" />} 
+            label="Jobs" 
+            className="hidden lg:flex"
+          />
+          <NavLink 
+            href="/swipe" 
+            icon={<Flame className="h-5 w-5" />} 
+            label="Swipe" 
+            badge="Hot"
+          />
+          <NavLink 
+            href="/messages" 
+            icon={<MessagesSquare className="h-5 w-5" />} 
+            label="Messages"
+            className="hidden md:flex"
+          />
+          <NavLink 
+            href="/mentorship" 
+            icon={<GraduationCap className="h-5 w-5" />} 
+            label="Mentor" 
+            className="hidden lg:flex"
+          />
+          <NavLink 
+            href="/analytics" 
+            icon={<BarChart3 className="h-5 w-5" />} 
+            label="Insights"
+            className="hidden md:flex"
+          />
+          <NavLink 
+            href="/settings" 
+            icon={<Settings className="h-5 w-5" />} 
+            label="Settings"
+            className="hidden lg:flex"
+          />
 
-        {/* Right: User Actions */}
-        <div className="flex items-center gap-3">
-          <Link href="/settings" className="p-2 rounded-full hover:bg-secondary/80 text-muted-foreground hover:text-foreground transition-colors hidden sm:block">
-            <Settings className="h-5 w-5" />
-          </Link>
-
-          <div className="pl-2 border-l border-white/10">
+          {/* User Section */}
+          <div className="ml-4 flex items-center space-x-2">
             <SignedIn>
-              <UserButton 
-                appearance={{
-                  elements: {
-                    avatarBox: "h-8 w-8 ring-2 ring-white/10 hover:ring-primary/40 transition-all"
-                  }
-                }}
-              />
+              <div className="relative">
+                <UserButton 
+                  appearance={{
+                    elements: {
+                      avatarBox: "h-9 w-9 rounded-full ring-2 ring-primary/20 hover:ring-primary/40 transition-all"
+                    }
+                  }}
+                />
+              </div>
             </SignedIn>
             <SignedOut>
-              <Button asChild variant="ghost" size="sm" className="text-sm font-medium">
+              <Button className="btn-primary">
                 <SignInButton />
               </Button>
             </SignedOut>
           </div>
-        </div>
+        </nav>
       </div>
     </header>
   );
 }
 
-// Minimal NavLink Component
+// NavLink Component
 interface NavLinkProps {
   href: string;
   icon: React.ReactNode;
-  active?: boolean; // For demonstration, ideally determined by current path
+  label: string;
   badge?: string;
   className?: string;
 }
 
-function NavLink({ href, icon, badge, className = "" }: NavLinkProps) {
+function NavLink({ href, icon, label, badge, className = "" }: NavLinkProps) {
   return (
     <Link 
       href={href} 
-      className={`relative flex items-center justify-center p-2.5 rounded-xl
-                 text-muted-foreground hover:text-foreground hover:bg-white/5 
-                 transition-all duration-200 group ${className}`}
+      className={`flex flex-col items-center justify-center px-3 py-2 rounded-lg
+                 hover:bg-secondary transition-all duration-200 group relative ${className}`}
     >
-      {icon}
-      {badge && (
-        <span className="absolute top-1 right-1 h-2 w-2 bg-rose-500 rounded-full ring-2 ring-background animate-pulse" />
-      )}
-      {/* Hover tooltip effect could go here */}
+      <div className="relative">
+        {icon}
+        {badge && (
+          <span className="absolute -top-1 -right-1 bg-accent text-white text-[10px] 
+                         font-bold px-1.5 py-0.5 rounded-full">
+            {badge}
+          </span>
+        )}
+      </div>
+      <span className="text-xs mt-1 font-medium text-muted-foreground group-hover:text-foreground transition-colors">
+        {label}
+      </span>
     </Link>
   );
 }

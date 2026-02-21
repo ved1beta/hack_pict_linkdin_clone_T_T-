@@ -40,18 +40,14 @@ async function fetchRepoInfo(owner: string, repo: string) {
 
 export async function POST() {
   try {
-    console.log("[GitAnalysis] Starting analysis...");
     const user = await currentUser();
     if (!user) {
-      console.log("[GitAnalysis] No user found");
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     await connectDB();
 
     const repos = await GitRepo.find({ userId: user.id }).lean();
-    console.log(`[GitAnalysis] Found ${repos.length} repos for user ${user.id}`);
-    
     if (repos.length === 0) {
       return NextResponse.json(
         { error: "Add GitHub repos in Settings first" },
@@ -61,7 +57,6 @@ export async function POST() {
 
     const repoInfos: { repoName: string; languages: string[]; description?: string }[] = [];
     for (const r of repos as any[]) {
-      console.log(`[GitAnalysis] Fetching info for ${r.owner}/${r.repoName}`);
       const info = await fetchRepoInfo(r.owner, r.repoName);
       if (info) {
         repoInfos.push({
@@ -69,16 +64,7 @@ export async function POST() {
           languages: info.languages,
           description: info.description,
         });
-      } else {
-        console.warn(`[GitAnalysis] Failed to fetch info for ${r.owner}/${r.repoName}`);
       }
-    }
-
-    if (repoInfos.length === 0) {
-       return NextResponse.json(
-        { error: "Could not fetch details for any linked repositories" },
-        { status: 400 }
-      );
     }
 
     const summary = repoInfos
@@ -90,9 +76,6 @@ export async function POST() {
 
     const kimiKey = process.env.KIMI_K2_API_KEY;
     const geminiKey = process.env.GEMINI_API_KEY;
-    
-    console.log(`[GitAnalysis] AI Providers - Kimi: ${!!kimiKey}, Gemini: ${!!geminiKey}`);
-
     if (!kimiKey && !geminiKey) {
       return NextResponse.json(
         { error: "AI provider not configured" },
@@ -116,43 +99,28 @@ Analyze the portfolio and respond with ONLY a valid JSON object (no markdown, no
 Be constructive. Consider: tech stack diversity, project complexity, documentation, language usage.`;
 
     let text: string;
-    try {
-      if (kimiKey) {
-        console.log("[GitAnalysis] Calling Kimi API...");
-        const openai = new OpenAI({
-          apiKey: kimiKey,
-          baseURL: "https://integrate.api.nvidia.com/v1",
-        });
-        const response = await openai.chat.completions.create({
-          model: process.env.KIMI_MODEL || "moonshotai/kimi-k2.5",
-          messages: [{ role: "user", content: prompt }],
-          temperature: 0.2,
-          max_tokens: 1024,
-        });
-        text = response.choices[0]?.message?.content?.trim() ?? "";
-      } else {
-        console.log("[GitAnalysis] Calling Gemini API...");
-        const genAI = new GoogleGenerativeAI(geminiKey!);
-        const model = genAI.getGenerativeModel({
-          model: process.env.GEMINI_MODEL || "gemini-2.0-flash",
-        });
-        const result = await model.generateContent(prompt);
-        text = result.response.text();
-      }
-      console.log("[GitAnalysis] AI Response received");
-    } catch (aiError) {
-      console.error("[GitAnalysis] AI Error:", aiError);
-      throw new Error("Failed to get analysis from AI");
+    if (kimiKey) {
+      const openai = new OpenAI({
+        apiKey: kimiKey,
+        baseURL: "https://kimi-k2.ai/api/v1",
+      });
+      const response = await openai.chat.completions.create({
+        model: process.env.KIMI_MODEL || "kimi-k2-0905",
+        messages: [{ role: "user", content: prompt }],
+        temperature: 0.2,
+      });
+      text = response.choices[0]?.message?.content?.trim() ?? "";
+    } else {
+      const genAI = new GoogleGenerativeAI(geminiKey!);
+      const model = genAI.getGenerativeModel({
+        model: process.env.GEMINI_MODEL || "gemini-2.0-flash",
+      });
+      const result = await model.generateContent(prompt);
+      text = result.response.text();
     }
 
-    let parsed;
-    try {
-      const jsonMatch = text.replace(/```json\n?|\n?```/g, "").trim();
-      parsed = JSON.parse(jsonMatch);
-    } catch (parseError) {
-      console.error("[GitAnalysis] JSON Parse Error. Raw text:", text);
-      throw new Error("Invalid response from AI");
-    }
+    const jsonMatch = text.replace(/```json\n?|\n?```/g, "").trim();
+    const parsed = JSON.parse(jsonMatch);
 
     const analysis = await GitAnalysis.create({
       userId: user.id,
@@ -161,10 +129,7 @@ Be constructive. Consider: tech stack diversity, project complexity, documentati
       improvements: Array.isArray(parsed.improvements) ? parsed.improvements : [],
       recommendation: parsed.recommendation || "Keep building!",
       repoSummary: repoInfos,
-      analyzedAt: new Date(),
     });
-
-    console.log("[GitAnalysis] Analysis saved to DB");
 
     return NextResponse.json({
       success: true,
@@ -179,7 +144,7 @@ Be constructive. Consider: tech stack diversity, project complexity, documentati
       },
     });
   } catch (err) {
-    console.error("[GitAnalysis] Critical Error:", err);
+    console.error("Git analyze error:", err);
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Analysis failed" },
       { status: 500 }
