@@ -143,17 +143,29 @@ export default function MentorshipPage() {
   const [selectedSkill, setSelectedSkill] = useState<string | null>(null);
   const [videoId, setVideoId] = useState<string | null>(null);
   const [isLoadingVideo, setIsLoadingVideo] = useState(false);
-  const [roadmap, setRoadmap] = useState<{ url: string; displayName: string; basedOnSkills: string[] } | null>(null);
+  const [roadmap, setRoadmap] = useState<{ url: string; displayName: string; basedOnSkills: string[]; resources?: any[] } | null>(null);
   const [roadmapLoading, setRoadmapLoading] = useState(true);
 
   useEffect(() => {
     fetch("/api/mentorship/roadmap")
       .then((r) => r.ok ? r.json() : null)
       .then((data) => {
-        if (data) setRoadmap({ url: data.url, displayName: data.displayName, basedOnSkills: data.basedOnSkills || [] });
+        if (data) {
+          setRoadmap({ 
+            url: data.url, 
+            displayName: data.displayName, 
+            basedOnSkills: data.basedOnSkills || [],
+            resources: data.resources || []
+          });
+        }
       })
       .finally(() => setRoadmapLoading(false));
   }, []);
+
+  const openResourceVideo = (videoId: string, skill: string) => {
+    setVideoId(videoId);
+    setSelectedSkill(skill);
+  };
 
   const getSkills = () => {
     const skillSet = SKILLS_DATABASE[interest]?.[jobRole];
@@ -258,25 +270,38 @@ export default function MentorshipPage() {
                 {roadmap.basedOnSkills.length > 0 && (
                   <span className="text-sm text-muted-foreground">
                     Based on: {roadmap.basedOnSkills.slice(0, 5).join(", ")}
-                    {roadmap.basedOnSkills.length > 5 ? "..." : ""}
                   </span>
                 )}
               </div>
-              <div className="rounded-xl overflow-hidden border border-border bg-secondary/30 p-6">
-                <p className="text-sm text-muted-foreground mb-4">
-                  roadmap.sh does not allow embedding. Click below to open your personalized roadmap in a new tab.
-                </p>
+              
+              <div className="rounded-xl overflow-hidden border border-border bg-card hover:border-primary/50 transition-all group">
                 <a
                   href={roadmap.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 btn-primary w-full justify-center py-4"
+                  className="block relative"
                 >
-                  <Map className="h-5 w-5" />
-                  Open {roadmap.displayName} Roadmap in New Tab
-                  <ExternalLink className="h-5 w-5" />
+                  {/* Using the wide card image from roadmap.sh */}
+                  <img 
+                    src={`https://roadmap.sh/card/wide/${roadmap.url.split('/').pop()}.png`}
+                    alt={`${roadmap.displayName} Roadmap`}
+                    className="w-full h-auto object-cover group-hover:opacity-90 transition-opacity"
+                    onError={(e) => {
+                      // Fallback if image fails
+                      (e.target as HTMLImageElement).style.display = 'none';
+                    }}
+                  />
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/20 transition-colors">
+                    <span className="opacity-0 group-hover:opacity-100 bg-white/90 text-black font-semibold px-4 py-2 rounded-full shadow-lg transform translate-y-2 group-hover:translate-y-0 transition-all">
+                      Click to Explore Interactive Roadmap
+                    </span>
+                  </div>
                 </a>
               </div>
+              
+              <p className="text-xs text-muted-foreground text-center">
+                Powered by <a href="https://roadmap.sh" target="_blank" className="underline hover:text-primary">roadmap.sh</a>
+              </p>
             </div>
           ) : (
             <p className="text-muted-foreground py-4">
@@ -284,6 +309,61 @@ export default function MentorshipPage() {
             </p>
           )}
         </div>
+
+        {/* AI Curated Tutorials Section */}
+        {roadmap?.resources && roadmap.resources.length > 0 && (
+          <div className="card-modern p-8 space-y-6">
+            <div className="flex items-center gap-2">
+              <Play className="h-6 w-6 text-primary" />
+              <h2 className="text-2xl font-bold">Curated Learning Path</h2>
+            </div>
+            <p className="text-muted-foreground">
+              Hand-picked tutorials for your top skills to bridge knowledge gaps.
+            </p>
+            
+            <div className="grid gap-6">
+              {roadmap.resources.map((res: any, idx: number) => (
+                <div key={idx} className="space-y-3">
+                  <h3 className="font-semibold text-lg flex items-center gap-2">
+                    <Badge variant="outline" className="text-base py-1 px-3 border-primary/30 bg-primary/5 text-primary">
+                      {res.skill}
+                    </Badge>
+                  </h3>
+                  <div className="grid md:grid-cols-2 gap-4">
+                    {res.videos.map((video: any) => (
+                      <div 
+                        key={video.id}
+                        className="group relative rounded-xl overflow-hidden border border-border bg-secondary/20 hover:border-primary/50 transition-all cursor-pointer"
+                        onClick={() => openResourceVideo(video.id, res.skill)}
+                      >
+                        <div className="aspect-video relative">
+                          <img 
+                            src={video.thumbnail} 
+                            alt={video.title}
+                            className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity"
+                          />
+                          <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/10 transition-colors">
+                            <div className="bg-white/90 rounded-full p-3 shadow-lg transform group-hover:scale-110 transition-transform">
+                              <Play className="h-6 w-6 text-primary fill-current" />
+                            </div>
+                          </div>
+                        </div>
+                        <div className="p-3">
+                          <h4 className="font-medium line-clamp-2 text-sm group-hover:text-primary transition-colors">
+                            {video.title}
+                          </h4>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {video.channelTitle}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Skill Recommendation Engine */}
         <div className="card-modern p-8 space-y-6">

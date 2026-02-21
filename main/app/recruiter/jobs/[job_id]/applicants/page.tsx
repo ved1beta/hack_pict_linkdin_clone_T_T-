@@ -68,7 +68,21 @@ async function JobApplicantsPage({ params }: JobApplicantsPageProps) {
     redirect("/recruiter/dashboard");
   }
 
-  const applicants = job.applications || [];
+  // Sort applicants by AI score (descending)
+  const sortedApplicants = (job.applications || []).sort((a: any, b: any) => {
+    // If scores are equal, sort by application date (newest first)
+    if ((b.aiScore || 0) === (a.aiScore || 0)) {
+      return new Date(b.appliedAt).getTime() - new Date(a.appliedAt).getTime();
+    }
+    return (b.aiScore || 0) - (a.aiScore || 0);
+  });
+
+  const applicants = JSON.parse(JSON.stringify(sortedApplicants));
+
+  console.log("Applicants for job:", job.title);
+  applicants.forEach((app: any) => {
+    console.log(`- ${app.userName}: AI Score = ${app.aiScore} (${typeof app.aiScore})`);
+  });
 
   return (
     <div className="bg-background min-h-screen py-6">

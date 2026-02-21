@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import connectDB from "@/mongodb/db";
 import { Job } from "@/mongodb/models/job";
 import { User } from "@/mongodb/models/user";
+import { ResumeAnalysis } from "@/mongodb/models/resumeAnalysis";
 import { currentUser } from "@clerk/nextjs/server";
 import { runATSAnalysis } from "@/lib/ats";
 
@@ -53,6 +54,17 @@ export async function POST(
       );
     }
 
+    // Check for existing ATS score
+    let aiScore: number | undefined;
+    const existingAnalysis = await ResumeAnalysis.findOne({
+      userId: userId,
+      jobId: jobId,
+    }).sort({ analyzedAt: -1 });
+
+    if (existingAnalysis) {
+      aiScore = existingAnalysis.jobMatchScore || existingAnalysis.overallScore;
+    }
+
     // Add application
     const application = {
       userId: dbUser.userId,
@@ -62,12 +74,14 @@ export async function POST(
       resumeUrl: dbUser.resumeUrl,
       appliedAt: new Date(),
       status: "pending" as const,
+      aiScore, // Include score if available
     };
 
     job.applications.push(application);
     await job.save();
 
-    // Run ATS analysis in background (don't block response)
+    // Run ATS analysis if score is missing or old (optional: always re-run to ensure freshness)
+    // We'll re-run it anyway to capture latest resume version if changed
     runATSAnalysis(clerkUser.id, dbUser, jobId).catch((err) =>
       console.error("ATS analysis failed:", err)
     );

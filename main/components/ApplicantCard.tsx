@@ -3,7 +3,7 @@
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
-import { Mail, Calendar, Download, CheckCircle, XCircle, Clock, User, Star, Award, MapPin, Briefcase, GraduationCap, StarOff, BarChart3 } from "lucide-react";
+import { Mail, Calendar, Download, CheckCircle, XCircle, Clock, User, Star, Award, MapPin, Briefcase, GraduationCap, StarOff, BarChart3, Sparkles } from "lucide-react";
 import dynamic from "next/dynamic";
 
 const AnalyticsGraphs = dynamic(() => import("@/app/analytics/AnalyticsGraphs"), { ssr: false });
@@ -259,9 +259,10 @@ function ApplicantCard({ applicant, jobId, companyName }: ApplicantCardProps) {
           </div>
           <div className="flex flex-col items-end space-y-2">
             {getStatusBadge()}
-            {applicant.aiScore && (
-              <Badge variant="outline" className="bg-purple-100 text-purple-700 border-purple-300">
-                AI Score: {applicant.aiScore}%
+            {typeof applicant.aiScore === 'number' && (
+              <Badge variant="outline" className="bg-purple-100 text-purple-700 border-purple-300 font-semibold">
+                <Sparkles className="h-3 w-3 mr-1" />
+                Match: {applicant.aiScore}%
               </Badge>
             )}
           </div>

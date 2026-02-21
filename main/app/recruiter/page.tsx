@@ -31,7 +31,8 @@ async function RecruiterDashboard() {
   }
 
   // Fetch recruiter's jobs
-  const jobs = await Job.find({ recruiterId: clerkUser.id }).sort({ postedAt: -1 }).lean();
+  const jobsRaw = await Job.find({ recruiterId: clerkUser.id }).sort({ postedAt: -1 }).lean();
+  const jobs = JSON.parse(JSON.stringify(jobsRaw));
   
   // Calculate stats
   const totalJobs = jobs.length;

@@ -5,6 +5,8 @@ import { ResumeUpload } from "@/mongodb/models/resumeUpload";
 import { ParsedResume } from "@/mongodb/models/parsedResume";
 import { User } from "@/mongodb/models/user";
 import { getRoadmapSlugFromSkills, getRoadmapUrl } from "@/lib/roadmap-mapper";
+import { searchYouTube } from "@/lib/youtube";
+import { chatWithProvider } from "@/lib/chat-providers";
 
 export async function GET() {
   try {
@@ -38,18 +40,61 @@ export async function GET() {
       }
     }
 
-    const slug = getRoadmapSlugFromSkills(skills);
+    // Filter skills using AI to remove irrelevant ones (e.g. "massala maggie")
+    let validSkills = skills;
+    if (skills.length > 0) {
+      try {
+        const prompt = `Filter this list of skills and keep ONLY technical, professional, or job-relevant skills (e.g. programming languages, tools, soft skills for work). Remove anything that looks like food, hobbies, or nonsense (e.g. "massala maggie", "cooking", "sleeping").
+        
+        List: ${JSON.stringify(skills)}
+        
+        Respond with ONLY a JSON array of strings. Example: ["React", "Python"]`;
+        
+        const response = await chatWithProvider(
+          [{ role: "user", content: prompt }],
+          "You are a helpful assistant that filters skill lists."
+        );
+        
+        const jsonMatch = response.replace(/```json\n?|\n?```/g, "").trim();
+        const cleaned = JSON.parse(jsonMatch);
+        if (Array.isArray(cleaned)) {
+          validSkills = cleaned;
+        }
+      } catch (aiError) {
+        console.error("Skill filtering failed, using raw list:", aiError);
+      }
+    }
+
+    const slug = getRoadmapSlugFromSkills(validSkills);
     const url = getRoadmapUrl(slug);
     const displayName = slug
       .split("-")
       .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
       .join(" ");
 
+    // Fetch diverse resources for top valid skills
+    const uniqueSkills = Array.from(new Set(validSkills)).slice(0, 3);
+    const resources: any[] = [];
+
+    // Parallel fetch for speed
+    await Promise.all(
+      uniqueSkills.map(async (skill) => {
+        const videos = await searchYouTube(skill, 2); // Get 2 videos per skill
+        if (videos.length > 0) {
+          resources.push({
+            skill,
+            videos,
+          });
+        }
+      })
+    );
+
     return NextResponse.json({
       slug,
       url,
       displayName,
-      basedOnSkills: skills.slice(0, 10),
+      basedOnSkills: validSkills.slice(0, 10),
+      resources, 
     });
   } catch (err) {
     console.error("Roadmap API error:", err);
