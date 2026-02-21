@@ -49,12 +49,6 @@ export async function POST(request: Request) {
     }
 
     const analysis = await runATSAnalysis(clerkUser.id, dbUser, jobId, resumeText);
-    if (!analysis) {
-      return NextResponse.json(
-        { error: "AI provider not configured (set KIMI_K2_API_KEY or GEMINI_API_KEY)" },
-        { status: 500 }
-      );
-    }
 
     return NextResponse.json(analysis);
   } catch (error) {

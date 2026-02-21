@@ -49,7 +49,7 @@ export async function POST(request: Request) {
     await connectDB();
 
     const dbUser = await User.findOne({ userId: user.id }).lean();
-    const githubUsername = dbUser?.githubUsername;
+    const githubUsername = (dbUser as any)?.githubUsername;
 
     if (!githubUsername) {
       return NextResponse.json(

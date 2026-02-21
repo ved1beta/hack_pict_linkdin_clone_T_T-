@@ -5,8 +5,7 @@ import { GitRepo } from "@/mongodb/models/gitRepo";
 import { GitAnalysis } from "@/mongodb/models/gitAnalysis";
 import { User } from "@/mongodb/models/user";
 import { fetchUserCommits } from "@/lib/github";
-import OpenAI from "openai";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { chatCompletion } from "@/lib/openrouter";
 
 async function fetchRepoInfo(owner: string, repo: string) {
   const res = await fetch(
@@ -86,15 +85,6 @@ export async function POST() {
       )
       .join("\n");
 
-    const kimiKey = process.env.KIMI_K2_API_KEY;
-    const geminiKey = process.env.GEMINI_API_KEY;
-    if (!kimiKey && !geminiKey) {
-      return NextResponse.json(
-        { error: "AI provider not configured" },
-        { status: 500 }
-      );
-    }
-
     const prompt = `You are a senior developer reviewing a candidate's GitHub portfolio.
 The "My commits" shown are ONLY this candidate's commits (filtered by author). Other contributors' work is excluded.
 
@@ -111,26 +101,12 @@ Analyze the portfolio and respond with ONLY a valid JSON object (no markdown, no
 
 Be constructive. Consider: tech stack diversity, project complexity, documentation, language usage.`;
 
-    let text: string;
-    if (kimiKey) {
-      const openai = new OpenAI({
-        apiKey: kimiKey,
-        baseURL: process.env.KIMI_BASE_URL || "https://integrate.api.nvidia.com/v1",
-      });
-      const response = await openai.chat.completions.create({
-        model: process.env.KIMI_MODEL || "moonshotai/kimi-k2.5",
-        messages: [{ role: "user", content: prompt }],
-        temperature: 0.2,
-      });
-      text = response.choices[0]?.message?.content?.trim() ?? "";
-    } else {
-      const genAI = new GoogleGenerativeAI(geminiKey!);
-      const model = genAI.getGenerativeModel({
-        model: process.env.GEMINI_MODEL || "gemini-2.0-flash",
-      });
-      const result = await model.generateContent(prompt);
-      text = result.response.text();
-    }
+    // Use OpenRouter for GitHub analysis
+    const text = await chatCompletion([
+      { role: "user", content: prompt }
+    ], {
+      temperature: 0.2,
+    });
 
     const jsonMatch = text.replace(/```json\n?|\n?```/g, "").trim();
     const parsed = JSON.parse(jsonMatch);

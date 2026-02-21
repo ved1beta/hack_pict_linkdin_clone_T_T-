@@ -102,3 +102,4 @@ export const Hackathon: IHackathonModel =
   (models.Hackathon as IHackathonModel) ||
   (mongoose.model<IHackathonDocument>("Hackathon", HackathonSchema) as IHackathonModel);
 
+

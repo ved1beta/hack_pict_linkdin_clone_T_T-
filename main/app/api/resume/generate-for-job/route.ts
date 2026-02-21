@@ -13,8 +13,7 @@ import { GitRepo } from "@/mongodb/models/gitRepo";
 import { ParsedResume } from "@/mongodb/models/parsedResume";
 import { ResumeUpload } from "@/mongodb/models/resumeUpload";
 import { Job } from "@/mongodb/models/job";
-import OpenAI from "openai";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { chatCompletion } from "@/lib/openrouter";
 
 const GITHUB_API = "https://api.github.com";
 
@@ -177,37 +176,14 @@ Rules:
 - If GitHub repos show relevant work, include them as projects
 - DO NOT fabricate experience. Only use what's in the profile.`;
 
-    const kimiKey = process.env.KIMI_K2_API_KEY;
-    const geminiKey = process.env.GEMINI_API_KEY;
-
-    let resumeText = "";
-
-    // Use Gemini first (faster) then fall back to Kimi
-    if (geminiKey) {
-      const genAI = new GoogleGenerativeAI(geminiKey);
-      const model = genAI.getGenerativeModel({
-        model: process.env.GEMINI_MODEL || "gemini-2.0-flash",
-      });
-      const result = await model.generateContent(prompt);
-      resumeText = result.response.text().trim();
-    } else if (kimiKey) {
-      const openai = new OpenAI({
-        apiKey: kimiKey,
-        baseURL: process.env.KIMI_BASE_URL || "https://integrate.api.nvidia.com/v1",
-      });
-      const response = await openai.chat.completions.create({
-        model: process.env.KIMI_MODEL || "moonshotai/kimi-k2.5",
-        messages: [
-          { role: "system", content: "You write professional, ATS-optimized resumes. Output plain text only." },
-          { role: "user", content: prompt },
-        ],
-        temperature: 0.3,
-        max_tokens: 1500,
-      });
-      resumeText = response.choices[0]?.message?.content?.trim() || "";
-    } else {
-      return NextResponse.json({ error: "AI provider not configured" }, { status: 500 });
-    }
+    // Use OpenRouter for resume generation
+    const resumeText = await chatCompletion([
+      { role: "system", content: "You write professional, ATS-optimized resumes. Output plain text only." },
+      { role: "user", content: prompt },
+    ], {
+      temperature: 0.3,
+      maxTokens: 1500,
+    });
 
     return NextResponse.json({ success: true, resumeText, jobTitle });
   } catch (err) {
