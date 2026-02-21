@@ -12,7 +12,10 @@ import {
   Loader2,
   AlertCircle,
   Map,
-  ExternalLink
+  ExternalLink,
+  Heart,
+  Users,
+  Lightbulb
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -112,28 +115,14 @@ const SKILLS_DATABASE: { [key: string]: { [key: string]: string[] } } = {
   },
 };
 
-const MENTOR_PROFILES = [
-  {
-    name: "Sarah Chen",
-    title: "Senior Software Engineer",
-    experience: "10+ Years",
-    specialty: "Full Stack Development",
-    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah",
-  },
-  {
-    name: "Dr. James Wilson",
-    title: "AI Research Scientist",
-    experience: "5-10 Years",
-    specialty: "Machine Learning",
-    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=James",
-  },
-  {
-    name: "Emily Rodriguez",
-    title: "Product Manager",
-    experience: "2-5 Years",
-    specialty: "Career Guidance",
-    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Emily",
-  },
+// Soft skills that every professional needs
+const SOFT_SKILLS = [
+  { name: "Communication Skills", query: "professional communication skills for developers" },
+  { name: "Problem Solving", query: "problem solving techniques for software engineers" },
+  { name: "Leadership", query: "leadership skills for tech professionals" },
+  { name: "Time Management", query: "time management productivity for developers" },
+  { name: "Teamwork & Collaboration", query: "teamwork collaboration skills in tech" },
+  { name: "Public Speaking", query: "public speaking for software developers" },
 ];
 
 export default function MentorshipPage() {
@@ -145,6 +134,8 @@ export default function MentorshipPage() {
   const [isLoadingVideo, setIsLoadingVideo] = useState(false);
   const [roadmap, setRoadmap] = useState<{ url: string; displayName: string; basedOnSkills: string[]; resources?: any[] } | null>(null);
   const [roadmapLoading, setRoadmapLoading] = useState(true);
+  const [softSkillVideos, setSoftSkillVideos] = useState<Record<string, any[]>>({});
+  const [loadingSoftSkill, setLoadingSoftSkill] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/mentorship/roadmap")
@@ -162,8 +153,8 @@ export default function MentorshipPage() {
       .finally(() => setRoadmapLoading(false));
   }, []);
 
-  const openResourceVideo = (videoId: string, skill: string) => {
-    setVideoId(videoId);
+  const openResourceVideo = (vid: string, skill: string) => {
+    setVideoId(vid);
     setSelectedSkill(skill);
   };
 
@@ -194,15 +185,11 @@ export default function MentorshipPage() {
     setIsLoadingVideo(true);
 
     try {
-      console.log("Fetching video for:", skill);
       const response = await fetch(`/api/youtube/search?q=${encodeURIComponent(skill)}`);
       
-      if (!response.ok) {
-        throw new Error("Failed to fetch video");
-      }
+      if (!response.ok) throw new Error("Failed to fetch video");
 
       const data = await response.json();
-      console.log("YouTube API response:", data);
       
       if (data.videos && data.videos.length > 0) {
         setVideoId(data.videos[0].id);
@@ -218,6 +205,34 @@ export default function MentorshipPage() {
       setSelectedSkill(null);
     } finally {
       setIsLoadingVideo(false);
+    }
+  };
+
+  const handleSoftSkillClick = async (skill: { name: string; query: string }) => {
+    if (softSkillVideos[skill.name]) {
+      // Already loaded - just play first video
+      const vids = softSkillVideos[skill.name];
+      if (vids.length > 0) {
+        setVideoId(vids[0].id);
+        setSelectedSkill(skill.name);
+      }
+      return;
+    }
+
+    setLoadingSoftSkill(skill.name);
+    try {
+      const response = await fetch(`/api/youtube/search?q=${encodeURIComponent(skill.query)}`);
+      if (!response.ok) throw new Error("Failed to fetch");
+      const data = await response.json();
+      if (data.videos && data.videos.length > 0) {
+        setSoftSkillVideos(prev => ({ ...prev, [skill.name]: data.videos }));
+        setVideoId(data.videos[0].id);
+        setSelectedSkill(skill.name);
+      }
+    } catch {
+      toast.error("Failed to load video");
+    } finally {
+      setLoadingSoftSkill(null);
     }
   };
 
@@ -256,57 +271,40 @@ export default function MentorshipPage() {
             </div>
           ) : roadmap ? (
             <div className="space-y-4">
-              <div className="flex flex-col gap-4">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div className="space-y-1">
-                    <h3 className="text-2xl font-bold flex items-center gap-2">
-                      <Map className="h-6 w-6 text-primary" />
-                      {roadmap.displayName}
-                    </h3>
-                    {roadmap.basedOnSkills.length > 0 && (
-                      <p className="text-sm text-muted-foreground">
-                        Recommended based on: {roadmap.basedOnSkills.slice(0, 3).join(", ")}
-                        {roadmap.basedOnSkills.length > 3 ? "..." : ""}
-                      </p>
-                    )}
-                  </div>
-                  <a
-                    href={roadmap.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="btn-primary"
-                  >
-                    View Interactive Roadmap <ExternalLink className="ml-2 h-4 w-4" />
-                  </a>
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="space-y-1">
+                  <h3 className="text-xl font-bold flex items-center gap-2">
+                    {roadmap.displayName}
+                  </h3>
+                  {roadmap.basedOnSkills.length > 0 && (
+                    <p className="text-sm text-muted-foreground">
+                      Based on: {roadmap.basedOnSkills.slice(0, 5).join(", ")}
+                      {roadmap.basedOnSkills.length > 5 ? "..." : ""}
+                    </p>
+                  )}
                 </div>
-
-                {/* Decorative Roadmap Card */}
-                <a
-                  href={roadmap.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="group relative block w-full aspect-[3/1] rounded-xl overflow-hidden border border-border bg-gradient-to-br from-slate-900 to-slate-800"
-                >
-                  {/* Abstract Map Lines Background */}
-                  <svg className="absolute inset-0 w-full h-full opacity-20 group-hover:opacity-30 transition-opacity" xmlns="http://www.w3.org/2000/svg">
-                    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
-                      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="currentColor" strokeWidth="1" className="text-primary"/>
-                    </pattern>
-                    <rect width="100%" height="100%" fill="url(#grid)" />
-                    <path d="M0 100 Q 250 50 500 100 T 1000 100" stroke="currentColor" strokeWidth="2" fill="none" className="text-primary/50" />
-                  </svg>
-                  
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="text-center space-y-2 p-4 bg-background/10 backdrop-blur-sm rounded-xl border border-white/10 group-hover:scale-105 transition-transform">
-                      <Map className="h-12 w-12 mx-auto text-primary mb-2" />
-                      <h4 className="text-xl font-bold text-white">Open {roadmap.displayName} Roadmap</h4>
-                      <span className="inline-block text-xs text-white/70 bg-black/50 px-3 py-1 rounded-full">
-                        Interactive Step-by-Step Guide
-                      </span>
-                    </div>
-                  </div>
-                </a>
               </div>
+
+              {/* Roadmap Link Card - Clean Button Style */}
+              <a
+                href={roadmap.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group flex items-center gap-4 p-4 rounded-xl border border-border bg-secondary/30 hover:border-primary/50 hover:bg-secondary/50 transition-all"
+              >
+                <div className="p-3 rounded-xl bg-primary/10 group-hover:bg-primary/20 transition-colors">
+                  <Map className="h-8 w-8 text-primary" />
+                </div>
+                <div className="flex-1">
+                  <h4 className="font-semibold text-lg group-hover:text-primary transition-colors">
+                    Open {roadmap.displayName} Roadmap
+                  </h4>
+                  <p className="text-sm text-muted-foreground">
+                    Interactive step-by-step learning path on roadmap.sh
+                  </p>
+                </div>
+                <ExternalLink className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
+              </a>
             </div>
           ) : (
             <p className="text-muted-foreground py-4">
@@ -319,11 +317,11 @@ export default function MentorshipPage() {
         {roadmap?.resources && roadmap.resources.length > 0 && (
           <div className="card-modern p-8 space-y-6">
             <div className="flex items-center gap-2">
-              <Play className="h-6 w-6 text-primary" />
+              <Lightbulb className="h-6 w-6 text-primary" />
               <h2 className="text-2xl font-bold">Curated Learning Path</h2>
             </div>
             <p className="text-muted-foreground">
-              Hand-picked tutorials for your top skills to bridge knowledge gaps.
+              Hand-picked tutorials based on your resume skills to help you level up.
             </p>
             
             <div className="grid gap-6">
@@ -369,6 +367,39 @@ export default function MentorshipPage() {
             </div>
           </div>
         )}
+
+        {/* Soft Skills Section */}
+        <div className="card-modern p-8 space-y-6">
+          <div className="flex items-center space-x-2">
+            <Heart className="h-6 w-6 text-primary" />
+            <h2 className="text-2xl font-bold">Soft Skills Development</h2>
+          </div>
+          <p className="text-muted-foreground">
+            Essential soft skills every professional needs. Click to watch curated video tutorials.
+          </p>
+          <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-3">
+            {SOFT_SKILLS.map((skill) => (
+              <button
+                key={skill.name}
+                onClick={() => handleSoftSkillClick(skill)}
+                disabled={loadingSoftSkill === skill.name}
+                className="group flex items-center gap-3 p-4 rounded-xl border border-border bg-secondary/20 hover:border-primary/50 hover:bg-secondary/40 transition-all text-left"
+              >
+                <div className="p-2 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
+                  {loadingSoftSkill === skill.name ? (
+                    <Loader2 className="h-5 w-5 text-primary animate-spin" />
+                  ) : (
+                    <Play className="h-5 w-5 text-primary" />
+                  )}
+                </div>
+                <div>
+                  <p className="font-medium text-sm group-hover:text-primary transition-colors">{skill.name}</p>
+                  <p className="text-xs text-muted-foreground">Watch tutorial</p>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
 
         {/* Skill Recommendation Engine */}
         <div className="card-modern p-8 space-y-6">
@@ -502,12 +533,34 @@ export default function MentorshipPage() {
         {/* Available Mentors */}
         <div className="card-modern p-8">
           <div className="flex items-center space-x-2 mb-6">
-            <MessageCircle className="h-6 w-6 text-primary" />
+            <Users className="h-6 w-6 text-primary" />
             <h2 className="text-2xl font-bold">Connect with Mentors</h2>
           </div>
 
           <div className="grid md:grid-cols-3 gap-6">
-            {MENTOR_PROFILES.map((mentor, index) => (
+            {[
+              {
+                name: "Sarah Chen",
+                title: "Senior Software Engineer",
+                experience: "10+ Years",
+                specialty: "Full Stack Development",
+                avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah",
+              },
+              {
+                name: "Dr. James Wilson",
+                title: "AI Research Scientist",
+                experience: "5-10 Years",
+                specialty: "Machine Learning",
+                avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=James",
+              },
+              {
+                name: "Emily Rodriguez",
+                title: "Product Manager",
+                experience: "2-5 Years",
+                specialty: "Career Guidance",
+                avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Emily",
+              },
+            ].map((mentor, index) => (
               <div key={index} className="card-modern p-6 text-center space-y-4 hover:ring-2 hover:ring-primary transition-all">
                 <img
                   src={mentor.avatar}

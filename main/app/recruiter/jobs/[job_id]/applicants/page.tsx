@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import connectDB from "@/mongodb/db";
 import { User } from "@/mongodb/models/user";
 import { Job } from "@/mongodb/models/job";
+import { Project } from "@/mongodb/models/project";
 import ApplicantCard from "@/components/ApplicantCard";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Users, Briefcase } from "lucide-react";
@@ -15,7 +16,6 @@ interface JobApplicantsPageProps {
 }
 
 async function JobApplicantsPage({ params }: JobApplicantsPageProps) {
-  // Await params first
   const { job_id } = await params;
   
   let clerkUser;
@@ -68,21 +68,53 @@ async function JobApplicantsPage({ params }: JobApplicantsPageProps) {
     redirect("/recruiter/dashboard");
   }
 
-  // Sort applicants by AI score (descending)
+  // Get accepted user IDs from ALL recruiter's jobs (for boosting tagged teammates)
+  const allJobs = await Job.find({ recruiterId: clerkUser.id }).lean();
+  const acceptedUserIds = new Set<string>();
+  allJobs.forEach((j: any) => {
+    (j.applications || []).forEach((app: any) => {
+      if (app.status === "accepted") {
+        acceptedUserIds.add(app.userId);
+      }
+    });
+  });
+
+  // Get projects where accepted users are team members
+  const boostedUserIds = new Set<string>();
+  if (acceptedUserIds.size > 0) {
+    const projectsWithAccepted = await Project.find({
+      "teamMembers.userId": { $in: Array.from(acceptedUserIds) }
+    }).lean();
+
+    projectsWithAccepted.forEach((project: any) => {
+      (project.teamMembers || []).forEach((member: any) => {
+        if (!acceptedUserIds.has(member.userId)) {
+          // This person is tagged alongside an accepted person
+          boostedUserIds.add(member.userId);
+        }
+      });
+    });
+  }
+
+  // Sort applicants: boosted first, then by AI score descending, then by date
   const sortedApplicants = (job.applications || []).sort((a: any, b: any) => {
-    // If scores are equal, sort by application date (newest first)
-    if ((b.aiScore || 0) === (a.aiScore || 0)) {
-      return new Date(b.appliedAt).getTime() - new Date(a.appliedAt).getTime();
+    const aBoosted = boostedUserIds.has(a.userId) ? 1 : 0;
+    const bBoosted = boostedUserIds.has(b.userId) ? 1 : 0;
+    
+    // Boosted candidates go first
+    if (aBoosted !== bBoosted) return bBoosted - aBoosted;
+    
+    // Then sort by AI score
+    if ((b.aiScore || 0) !== (a.aiScore || 0)) {
+      return (b.aiScore || 0) - (a.aiScore || 0);
     }
-    return (b.aiScore || 0) - (a.aiScore || 0);
+    
+    // Then by application date (newest first)
+    return new Date(b.appliedAt).getTime() - new Date(a.appliedAt).getTime();
   });
 
   const applicants = JSON.parse(JSON.stringify(sortedApplicants));
-
-  console.log("Applicants for job:", job.title);
-  applicants.forEach((app: any) => {
-    console.log(`- ${app.userName}: AI Score = ${app.aiScore} (${typeof app.aiScore})`);
-  });
+  const boostedIds = Array.from(boostedUserIds);
 
   return (
     <div className="bg-background min-h-screen py-6">
@@ -90,7 +122,7 @@ async function JobApplicantsPage({ params }: JobApplicantsPageProps) {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <Link href="/recruiter/dashboard">
+            <Link href="/recruiter">
               <Button variant="ghost" size="sm" className="mb-2">
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Back to Dashboard

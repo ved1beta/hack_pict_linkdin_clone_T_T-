@@ -11,11 +11,16 @@ import {
   Trash2,
   X,
   Search,
+  Code2,
+  Globe,
+  Settings,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
+import Link from "next/link";
 
 interface TeamMember {
   userId: string;
@@ -36,14 +41,30 @@ interface Project {
   createdAt: string;
 }
 
+interface GitRepoItem {
+  _id: string;
+  url: string;
+  repoName: string;
+  owner: string;
+}
+
+interface GitAnalysisData {
+  score?: number;
+  repoSummary?: { repoName: string; languages: string[]; description?: string }[];
+}
+
 interface ProjectsClientProps {
   initialProjects: Project[];
   currentUserId: string;
+  gitRepos?: GitRepoItem[];
+  gitAnalysis?: GitAnalysisData | null;
 }
 
 export default function ProjectsClient({
   initialProjects,
   currentUserId,
+  gitRepos = [],
+  gitAnalysis = null,
 }: ProjectsClientProps) {
   const [projects, setProjects] = useState<Project[]>(initialProjects);
   const [showModal, setShowModal] = useState(false);
@@ -232,6 +253,12 @@ export default function ProjectsClient({
     }
   };
 
+  // Get repo summary from git analysis
+  const getRepoSummary = (repoName: string) => {
+    if (!gitAnalysis?.repoSummary) return null;
+    return gitAnalysis.repoSummary.find((r) => r.repoName === repoName);
+  };
+
   return (
     <div className="max-w-5xl mx-auto px-4">
       <div className="flex items-center justify-between mb-8">
@@ -256,7 +283,71 @@ export default function ProjectsClient({
         </Button>
       </div>
 
-      {projects.length === 0 ? (
+      {/* Linked Git Repos from Settings */}
+      {gitRepos.length > 0 && (
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold flex items-center gap-2">
+              <Github className="h-5 w-5 text-muted-foreground" />
+              Linked Repositories
+            </h2>
+            <Link href="/settings">
+              <Button variant="ghost" size="sm" className="text-muted-foreground">
+                <Settings className="h-4 w-4 mr-1" />
+                Manage in Settings
+              </Button>
+            </Link>
+          </div>
+          <div className="grid sm:grid-cols-2 gap-4">
+            {gitRepos.map((repo) => {
+              const summary = getRepoSummary(repo.repoName);
+              return (
+                <div
+                  key={repo._id}
+                  className="card-modern p-4 hover:border-primary/30 transition-colors"
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="p-2 rounded-lg bg-secondary">
+                      <Github className="h-5 w-5 text-foreground" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <a
+                        href={repo.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-semibold text-sm hover:text-primary transition-colors flex items-center gap-1"
+                      >
+                        {repo.repoName}
+                        <ExternalLink className="h-3 w-3 flex-shrink-0" />
+                      </a>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        by {repo.owner}
+                      </p>
+                      {summary?.description && (
+                        <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                          {summary.description}
+                        </p>
+                      )}
+                      {summary?.languages && summary.languages.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-2">
+                          {summary.languages.map((lang, i) => (
+                            <Badge key={i} variant="secondary" className="text-[10px] px-1.5 py-0">
+                              {lang}
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Projects List */}
+      {projects.length === 0 && gitRepos.length === 0 ? (
         <div className="card-modern p-12 text-center">
           <FolderGit2 className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
           <h3 className="text-xl font-semibold mb-2">No projects yet</h3>
@@ -305,6 +396,7 @@ export default function ProjectsClient({
                         rel="noopener noreferrer"
                         className="inline-flex items-center gap-1 text-primary hover:underline"
                       >
+                        <Globe className="h-4 w-4" />
                         Link {i + 1}
                         <ExternalLink className="h-3 w-3" />
                       </a>

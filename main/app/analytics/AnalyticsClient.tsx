@@ -21,6 +21,9 @@ import {
   Code2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import dynamic from "next/dynamic";
+
+const GitHubContribGraph = dynamic(() => import("@/components/GitHubContribGraph"), { ssr: false });
 
 interface AnalyticsClientProps {
   data: {
@@ -237,6 +240,9 @@ export default function AnalyticsClient({ data }: AnalyticsClientProps) {
         gitRepos={git?.repos || []}
         gitAnalysis={git?.latestAnalysis || null}
       />
+
+      {/* GitHub Contribution Graph */}
+      <GitHubContribGraph initialUsername={gitRepos.length > 0 ? gitRepos[0].owner : ""} />
 
       {/* Tabs */}
       <div className="flex gap-2 border-b border-border pb-2">

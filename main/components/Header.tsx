@@ -5,28 +5,27 @@ import {
   MessagesSquare,
   SearchIcon,
   UsersIcon,
-  Zap,
-  Trophy,
   Flame,
   GraduationCap,
   Settings,
   BarChart3,
   FolderGit2,
+  Link2,
 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "./ui/button";
 
 async function Header() {
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="flex items-center justify-between h-16 max-w-7xl mx-auto px-4">
+    <header className="sticky top-0 z-50 w-full border-b border-border/50 bg-background/80 backdrop-blur-xl">
+      <div className="flex items-center justify-between h-14 max-w-7xl mx-auto px-4">
         {/* Logo */}
         <Link href="/" className="flex items-center space-x-2 hover:opacity-80 transition-opacity">
-          <div className="bg-gradient-to-br from-primary to-accent rounded-xl p-2">
-            <Zap className="h-6 w-6 text-white" />
+          <div className="bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 rounded-lg p-1.5">
+            <Link2 className="h-5 w-5 text-white" />
           </div>
-          <span className="font-bold text-xl gradient-text hidden sm:block">
-            HEXjuy&apos;s
+          <span className="font-bold text-lg hidden sm:block tracking-tight">
+            HEX<span className="text-primary">Link</span>
           </span>
         </Link>
 
@@ -36,16 +35,16 @@ async function Header() {
             <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <input
               type="text"
-              placeholder="Search posts, teams, or people..."
-              className="w-full pl-10 pr-4 py-2 bg-secondary border border-border rounded-full 
-                       focus:ring-2 focus:ring-primary focus:border-transparent 
+              placeholder="Search..."
+              className="w-full pl-10 pr-4 py-1.5 bg-secondary/50 border border-border/50 rounded-full 
+                       focus:ring-2 focus:ring-primary/30 focus:border-primary/50 
                        transition-all duration-200 outline-none text-sm"
             />
           </form>
         </div>
 
         {/* Navigation */}
-        <nav className="flex items-center space-x-1">
+        <nav className="flex items-center space-x-0.5">
           <NavLink href="/" icon={<HomeIcon className="h-5 w-5" />} label="Home" />
           <NavLink 
             href="/network" 
@@ -68,7 +67,7 @@ async function Header() {
           <NavLink 
             href="/messages" 
             icon={<MessagesSquare className="h-5 w-5" />} 
-            label="Messages"
+            label="Chat"
             className="hidden md:flex"
           />
           <NavLink 
@@ -97,20 +96,20 @@ async function Header() {
           />
 
           {/* User Section */}
-          <div className="ml-4 flex items-center space-x-2">
+          <div className="ml-3 flex items-center space-x-2">
             <SignedIn>
               <div className="relative">
                 <UserButton 
                   appearance={{
                     elements: {
-                      avatarBox: "h-9 w-9 rounded-full ring-2 ring-primary/20 hover:ring-primary/40 transition-all"
+                      avatarBox: "h-8 w-8 rounded-full ring-2 ring-primary/10 hover:ring-primary/30 transition-all"
                     }
                   }}
                 />
               </div>
             </SignedIn>
             <SignedOut>
-              <Button className="btn-primary">
+              <Button className="btn-primary text-sm h-8 px-4">
                 <SignInButton />
               </Button>
             </SignedOut>
@@ -134,19 +133,19 @@ function NavLink({ href, icon, label, badge, className = "" }: NavLinkProps) {
   return (
     <Link 
       href={href} 
-      className={`flex flex-col items-center justify-center px-3 py-2 rounded-lg
-                 hover:bg-secondary transition-all duration-200 group relative ${className}`}
+      className={`flex flex-col items-center justify-center px-2.5 py-1.5 rounded-lg
+                 hover:bg-secondary/80 transition-all duration-200 group relative ${className}`}
     >
-      <div className="relative">
+      <div className="relative text-muted-foreground group-hover:text-foreground transition-colors">
         {icon}
         {badge && (
-          <span className="absolute -top-1 -right-1 bg-accent text-white text-[10px] 
-                         font-bold px-1.5 py-0.5 rounded-full">
+          <span className="absolute -top-1 -right-1.5 bg-accent text-white text-[9px] 
+                         font-bold px-1 py-0 rounded-full leading-tight">
             {badge}
           </span>
         )}
       </div>
-      <span className="text-xs mt-1 font-medium text-muted-foreground group-hover:text-foreground transition-colors">
+      <span className="text-[10px] mt-0.5 font-medium text-muted-foreground group-hover:text-foreground transition-colors">
         {label}
       </span>
     </Link>

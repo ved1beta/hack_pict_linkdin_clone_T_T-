@@ -3,10 +3,11 @@
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
-import { Mail, Calendar, Download, CheckCircle, XCircle, Clock, User, Star, Award, MapPin, Briefcase, GraduationCap, StarOff, BarChart3, Sparkles } from "lucide-react";
+import { Mail, Calendar, Download, CheckCircle, XCircle, Clock, User, Star, Award, MapPin, Briefcase, GraduationCap, StarOff, BarChart3, Sparkles, ChevronDown, ChevronUp } from "lucide-react";
 import dynamic from "next/dynamic";
 
 const AnalyticsGraphs = dynamic(() => import("@/app/analytics/AnalyticsGraphs"), { ssr: false });
+const GitHubContribGraph = dynamic(() => import("@/components/GitHubContribGraph"), { ssr: false });
 import ReactTimeago from "react-timeago";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
@@ -30,7 +31,7 @@ interface ApplicantCardProps {
 function ApplicantCard({ applicant, jobId, companyName }: ApplicantCardProps) {
   const [status, setStatus] = useState(applicant.status);
   const [loading, setLoading] = useState(false);
-  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [candidate, setCandidate] = useState<any>(null);
   const [loadingProfile, setLoadingProfile] = useState(false);
@@ -66,12 +67,12 @@ function ApplicantCard({ applicant, jobId, companyName }: ApplicantCardProps) {
     }
   };
 
-  // Fetch candidate profile when modal opens
+  // Fetch candidate profile + analytics when expanded
   useEffect(() => {
-    if (showProfileModal && applicant.userId) {
+    if (expanded && !candidate) {
       fetchCandidate();
     }
-  }, [showProfileModal, applicant.userId]);
+  }, [expanded]);
 
   const fetchCandidate = async () => {
     setLoadingProfile(true);
@@ -125,7 +126,7 @@ function ApplicantCard({ applicant, jobId, companyName }: ApplicantCardProps) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
-          candidateId: applicant.userId, // THIS IS THE CANDIDATE'S ID
+          candidateId: applicant.userId,
           companyName, 
           jobId 
         }),
@@ -138,7 +139,6 @@ function ApplicantCard({ applicant, jobId, companyName }: ApplicantCardProps) {
         } else {
           toast.success(data.message);
         }
-        // Reload recommendations immediately
         await loadRecommendations();
       } else {
         toast.error(data.error);
@@ -222,146 +222,141 @@ function ApplicantCard({ applicant, jobId, companyName }: ApplicantCardProps) {
 
   return (
     <>
-      <div className="bg-card border rounded-lg p-6 space-y-4 hover:border-primary/50 transition-all shadow-sm">
-        <div className="flex items-start justify-between">
-          <div className="flex items-center space-x-4">
-            <Avatar className="h-16 w-16 ring-2 ring-primary/20">
-              <AvatarImage src={applicant.userImage} />
-              <AvatarFallback className="bg-gradient-to-br from-primary to-accent text-white font-semibold text-lg">
-                {applicant.userName.split(" ").map(n => n[0]).join("")}
-              </AvatarFallback>
-            </Avatar>
-            <div>
-              <h3 className="text-lg font-bold text-foreground">{applicant.userName}</h3>
-              <div className="flex items-center space-x-2 text-sm text-muted-foreground mt-1">
-                <Mail className="h-3 w-3" />
-                <a href={`mailto:${applicant.userEmail}`} className="hover:text-primary transition-colors">
-                  {applicant.userEmail}
-                </a>
-              </div>
-              <div className="flex items-center text-xs text-muted-foreground mt-1">
-                <Calendar className="h-3 w-3 mr-1" />
-                Applied <ReactTimeago date={new Date(applicant.appliedAt)} />
-              </div>
-              
-              {/* Show ALL recommendations */}
-              {!loadingRecommendations && recommendations.length > 0 && (
-                <div className="flex flex-wrap gap-1 mt-2">
-                  {recommendations.map((rec: any, idx: number) => (
-                    <Badge key={idx} variant="outline" className="bg-green-50 text-green-700 border-green-300 text-xs">
-                      <Award className="h-2.5 w-2.5 mr-1" />
-                      {rec.companyName}
-                    </Badge>
-                  ))}
+      <div className="bg-card border rounded-lg overflow-hidden hover:border-primary/50 transition-all shadow-sm">
+        {/* Main Row - Always visible */}
+        <div className="p-6 space-y-4">
+          <div className="flex items-start justify-between">
+            <div className="flex items-center space-x-4">
+              <Avatar className="h-16 w-16 ring-2 ring-primary/20">
+                <AvatarImage src={applicant.userImage} />
+                <AvatarFallback className="bg-gradient-to-br from-primary to-accent text-white font-semibold text-lg">
+                  {applicant.userName.split(" ").map(n => n[0]).join("")}
+                </AvatarFallback>
+              </Avatar>
+              <div>
+                <h3 className="text-lg font-bold text-foreground">{applicant.userName}</h3>
+                <div className="flex items-center space-x-2 text-sm text-muted-foreground mt-1">
+                  <Mail className="h-3 w-3" />
+                  <a href={`mailto:${applicant.userEmail}`} className="hover:text-primary transition-colors">
+                    {applicant.userEmail}
+                  </a>
                 </div>
+                <div className="flex items-center text-xs text-muted-foreground mt-1">
+                  <Calendar className="h-3 w-3 mr-1" />
+                  Applied <ReactTimeago date={new Date(applicant.appliedAt)} />
+                </div>
+                
+                {/* Show ALL recommendations */}
+                {!loadingRecommendations && recommendations.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mt-2">
+                    {recommendations.map((rec: any, idx: number) => (
+                      <Badge key={idx} variant="outline" className="bg-green-50 text-green-700 border-green-300 text-xs">
+                        <Award className="h-2.5 w-2.5 mr-1" />
+                        {rec.companyName}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+            <div className="flex flex-col items-end space-y-2">
+              {getStatusBadge()}
+              {typeof applicant.aiScore === 'number' && (
+                <Badge variant="outline" className="bg-purple-100 text-purple-700 border-purple-300 font-semibold">
+                  <Sparkles className="h-3 w-3 mr-1" />
+                  Match: {applicant.aiScore}%
+                </Badge>
               )}
             </div>
           </div>
-          <div className="flex flex-col items-end space-y-2">
-            {getStatusBadge()}
-            {typeof applicant.aiScore === 'number' && (
-              <Badge variant="outline" className="bg-purple-100 text-purple-700 border-purple-300 font-semibold">
-                <Sparkles className="h-3 w-3 mr-1" />
-                Match: {applicant.aiScore}%
-              </Badge>
+
+          <div className="flex items-center flex-wrap gap-2 pt-4 border-t border-border">
+            {/* Expand/Collapse Button */}
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="bg-background"
+              onClick={() => setExpanded(!expanded)}
+            >
+              {expanded ? <ChevronUp className="h-4 w-4 mr-1" /> : <ChevronDown className="h-4 w-4 mr-1" />}
+              {expanded ? "Collapse" : "View Details"}
+            </Button>
+            
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleRecommend} 
+              disabled={loading || loadingRecommendations}
+              className={
+                isRecommended 
+                  ? "bg-green-50 text-green-700 border-green-300 hover:bg-green-100" 
+                  : "bg-yellow-50 text-yellow-700 border-yellow-300 hover:bg-yellow-100"
+              }
+            >
+              {isRecommended ? (
+                <>
+                  <StarOff className="h-4 w-4 mr-1" />
+                  Remove Rec
+                </>
+              ) : (
+                <>
+                  <Star className="h-4 w-4 mr-1" />
+                  Recommend
+                </>
+              )}
+            </Button>
+            
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="bg-background"
+              onClick={() => setShowScheduleModal(true)}
+            >
+              <Calendar className="h-4 w-4 mr-1" />
+              Schedule
+            </Button>
+            
+            {applicant.resumeUrl && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => window.open(applicant.resumeUrl, "_blank")}
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Resume
+              </Button>
+            )}
+            
+            {status === "pending" && (
+              <>
+                <Button 
+                  variant="default" 
+                  size="sm" 
+                  onClick={() => updateStatus("accepted")} 
+                  disabled={loading} 
+                  className="bg-green-600 hover:bg-green-700 text-white"
+                >
+                  <CheckCircle className="h-4 w-4 mr-1" />
+                  Accept
+                </Button>
+                <Button 
+                  variant="destructive" 
+                  size="sm" 
+                  onClick={() => updateStatus("rejected")} 
+                  disabled={loading}
+                  className="bg-red-600 hover:bg-red-700"
+                >
+                  <XCircle className="h-4 w-4 mr-1" />
+                  Reject
+                </Button>
+              </>
             )}
           </div>
         </div>
 
-        <div className="flex items-center flex-wrap gap-2 pt-4 border-t border-border">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="bg-background"
-            onClick={() => setShowProfileModal(true)}
-          >
-            <User className="h-4 w-4 mr-1" />
-            Profile
-          </Button>
-          
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={handleRecommend} 
-            disabled={loading || loadingRecommendations}
-            className={
-              isRecommended 
-                ? "bg-green-50 text-green-700 border-green-300 hover:bg-green-100" 
-                : "bg-yellow-50 text-yellow-700 border-yellow-300 hover:bg-yellow-100"
-            }
-          >
-            {isRecommended ? (
-              <>
-                <StarOff className="h-4 w-4 mr-1" />
-                Remove Recommendation
-              </>
-            ) : (
-              <>
-                <Star className="h-4 w-4 mr-1" />
-                Recommend
-              </>
-            )}
-          </Button>
-          
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="bg-background"
-            onClick={() => setShowScheduleModal(true)}
-          >
-            <Calendar className="h-4 w-4 mr-1" />
-            Schedule
-          </Button>
-          
-          {applicant.resumeUrl && (
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={() => window.open(applicant.resumeUrl, "_blank")}
-            >
-              <Download className="h-4 w-4 mr-2" />
-              Resume
-            </Button>
-          )}
-          
-          {status === "pending" && (
-            <>
-              <Button 
-                variant="default" 
-                size="sm" 
-                onClick={() => updateStatus("accepted")} 
-                disabled={loading} 
-                className="bg-green-600 hover:bg-green-700 text-white"
-              >
-                <CheckCircle className="h-4 w-4 mr-1" />
-                Accept
-              </Button>
-              <Button 
-                variant="destructive" 
-                size="sm" 
-                onClick={() => updateStatus("rejected")} 
-                disabled={loading}
-                className="bg-red-600 hover:bg-red-700"
-              >
-                <XCircle className="h-4 w-4 mr-1" />
-                Reject
-              </Button>
-            </>
-          )}
-        </div>
-      </div>
-
-      {/* Profile Modal */}
-      {showProfileModal && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setShowProfileModal(false)}>
-          <div className="bg-card rounded-lg max-w-3xl w-full max-h-[90vh] overflow-y-auto p-6" onClick={(e) => e.stopPropagation()}>
-            <div className="flex justify-between items-start mb-6">
-              <h2 className="text-2xl font-bold">Candidate Profile</h2>
-              <button onClick={() => setShowProfileModal(false)} className="text-muted-foreground hover:text-foreground">
-                <XCircle className="h-6 w-6" />
-              </button>
-            </div>
-
+        {/* Expandable Details Section */}
+        {expanded && (
+          <div className="border-t border-border bg-secondary/20 p-6 space-y-6 animate-in slide-in-from-top-2 duration-200">
             {loadingProfile ? (
               <div className="space-y-4">
                 <div className="h-20 w-20 rounded-full bg-muted animate-pulse" />
@@ -369,35 +364,62 @@ function ApplicantCard({ applicant, jobId, companyName }: ApplicantCardProps) {
                 <div className="h-4 w-64 bg-muted animate-pulse rounded" />
               </div>
             ) : candidate ? (
-              <div className="space-y-6">
-                <div className="flex items-start gap-4">
-                  <Avatar className="h-20 w-20 ring-4 ring-primary/20">
-                    <AvatarImage src={candidate.userImage} />
-                    <AvatarFallback className="text-2xl bg-gradient-to-br from-primary to-accent text-white">
-                      {candidate.firstName?.charAt(0)}{candidate.lastName?.charAt(0)}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1">
-                    <h3 className="text-2xl font-bold">{candidate.firstName} {candidate.lastName}</h3>
-                    <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground mt-2">
-                      <span className="flex items-center gap-1">
-                        <Mail className="h-4 w-4" />
-                        {candidate.email}
-                      </span>
-                      {candidate.location && (
-                        <span className="flex items-center gap-1">
-                          <MapPin className="h-4 w-4" />
-                          {candidate.location}
-                        </span>
-                      )}
+              <>
+                {/* Profile Info */}
+                <div className="grid md:grid-cols-2 gap-6">
+                  {candidate.bio && (
+                    <div>
+                      <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2">About</h4>
+                      <p className="text-sm text-foreground">{candidate.bio}</p>
+                    </div>
+                  )}
+
+                  {candidate.experience && (
+                    <div>
+                      <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1">
+                        <Briefcase className="h-3.5 w-3.5" />
+                        Experience
+                      </h4>
+                      <p className="text-sm text-foreground whitespace-pre-wrap">{candidate.experience}</p>
+                    </div>
+                  )}
+
+                  {candidate.education && (
+                    <div>
+                      <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1">
+                        <GraduationCap className="h-3.5 w-3.5" />
+                        Education
+                      </h4>
+                      <p className="text-sm text-foreground whitespace-pre-wrap">{candidate.education}</p>
+                    </div>
+                  )}
+
+                  {candidate.location && (
+                    <div>
+                      <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1">
+                        <MapPin className="h-3.5 w-3.5" />
+                        Location
+                      </h4>
+                      <p className="text-sm text-foreground">{candidate.location}</p>
+                    </div>
+                  )}
+                </div>
+
+                {candidate.skills && candidate.skills.length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2">Skills</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {candidate.skills.map((skill: string, idx: number) => (
+                        <Badge key={idx} variant="secondary" className="text-xs">{skill}</Badge>
+                      ))}
                     </div>
                   </div>
-                </div>
+                )}
 
                 {recommendations.length > 0 && (
                   <div>
-                    <h4 className="text-lg font-semibold mb-3 flex items-center gap-2">
-                      <Star className="h-5 w-5 text-yellow-500" />
+                    <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1">
+                      <Star className="h-3.5 w-3.5 text-yellow-500" />
                       Recommendations ({recommendations.length})
                     </h4>
                     <div className="flex flex-wrap gap-2">
@@ -411,50 +433,12 @@ function ApplicantCard({ applicant, jobId, companyName }: ApplicantCardProps) {
                   </div>
                 )}
 
-                {candidate.bio && (
-                  <div>
-                    <h4 className="text-lg font-semibold mb-2">About</h4>
-                    <p className="text-muted-foreground">{candidate.bio}</p>
-                  </div>
-                )}
-
-                {candidate.experience && (
-                  <div>
-                    <h4 className="text-lg font-semibold mb-2 flex items-center gap-2">
-                      <Briefcase className="h-5 w-5" />
-                      Experience
-                    </h4>
-                    <p className="text-muted-foreground whitespace-pre-wrap">{candidate.experience}</p>
-                  </div>
-                )}
-
-                {candidate.education && (
-                  <div>
-                    <h4 className="text-lg font-semibold mb-2 flex items-center gap-2">
-                      <GraduationCap className="h-5 w-5" />
-                      Education
-                    </h4>
-                    <p className="text-muted-foreground whitespace-pre-wrap">{candidate.education}</p>
-                  </div>
-                )}
-
-                {candidate.skills && candidate.skills.length > 0 && (
-                  <div>
-                    <h4 className="text-lg font-semibold mb-3">Skills</h4>
-                    <div className="flex flex-wrap gap-2">
-                      {candidate.skills.map((skill: string, idx: number) => (
-                        <Badge key={idx} variant="secondary">{skill}</Badge>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Candidate Analytics - visible to recruiter */}
+                {/* Candidate Analytics - Charts */}
                 {analytics && (
-                  <div className="border-t border-border pt-6">
-                    <h4 className="text-lg font-semibold mb-3 flex items-center gap-2">
-                      <BarChart3 className="h-5 w-5 text-primary" />
-                      Candidate Insights
+                  <div className="pt-4 border-t border-border space-y-4">
+                    <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-2">
+                      <BarChart3 className="h-4 w-4 text-primary" />
+                      Candidate Insights & Analytics
                     </h4>
                     <AnalyticsGraphs
                       resumeUploads={analytics.resumeUploads || []}
@@ -462,17 +446,20 @@ function ApplicantCard({ applicant, jobId, companyName }: ApplicantCardProps) {
                       gitRepos={analytics.gitRepos || []}
                       gitAnalysis={analytics.gitAnalysis || null}
                     />
+                    {analytics.gitHubUsername && (
+                      <GitHubContribGraph initialUsername={analytics.gitHubUsername} compact />
+                    )}
                   </div>
                 )}
-              </div>
+              </>
             ) : (
-              <p className="text-center text-muted-foreground">Candidate not found</p>
+              <p className="text-center text-muted-foreground py-4">Candidate not found</p>
             )}
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
-      {/* Schedule Modal - Same as before */}
+      {/* Schedule Modal */}
       {showScheduleModal && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setShowScheduleModal(false)}>
           <div className="bg-card rounded-lg max-w-md w-full p-6" onClick={(e) => e.stopPropagation()}>

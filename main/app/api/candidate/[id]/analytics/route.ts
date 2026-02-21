@@ -38,6 +38,9 @@ export async function GET(
         latestGit?.repoSummary?.find((rs: any) => rs.repoName === r.repoName)?.languages || [],
     }));
 
+    // Get GitHub username from first repo
+    const gitHubUsername = (gitRepos as any[]).length > 0 ? (gitRepos as any[])[0].owner : null;
+
     return NextResponse.json({
       resumeUploads: resumeUploads.map((u: any) => ({ createdAt: u.createdAt })),
       atsScores: atsScores.map((s: any) => ({ createdAt: s.createdAt, score: s.score })),
@@ -48,6 +51,7 @@ export async function GET(
             repoSummary: latestGit.repoSummary,
           }
         : null,
+      gitHubUsername,
     });
   } catch (error) {
     console.error("Candidate analytics error:", error);
