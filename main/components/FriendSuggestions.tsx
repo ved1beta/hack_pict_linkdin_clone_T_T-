@@ -3,7 +3,7 @@
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
-import { UserPlus, UserMinus, Users, MapPin, Briefcase } from "lucide-react";
+import { UserPlus, UserMinus, Users, MapPin, Briefcase, Shield } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import Link from "next/link";
@@ -19,6 +19,10 @@ interface FriendSuggestion {
   companyName?: string;
   topSkills: string[];
   isConnected?: boolean;
+  collegeVerification?: {
+    collegeName: string;
+    status: string;
+  };
 }
 
 interface FriendSuggestionsProps {
@@ -155,6 +159,16 @@ export default function FriendSuggestions({ suggestions, currentUserId }: Friend
                   </div>
                 )}
               </div>
+
+              {/* College Verification Badge */}
+              {person.collegeVerification?.status === "approved" && (
+                <div className="w-full">
+                  <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-300 text-xs w-full justify-center">
+                    <Shield className="h-3 w-3 mr-1" />
+                    {person.collegeVerification.collegeName}
+                  </Badge>
+                </div>
+              )}
 
               {/* Skills */}
               {person.topSkills && person.topSkills.length > 0 && (

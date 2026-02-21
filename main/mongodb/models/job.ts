@@ -9,6 +9,8 @@ export interface IJobApplication {
   appliedAt: Date;
   status: "pending" | "reviewed" | "accepted" | "rejected";
   aiScore?: number; // AI matching score
+  collegeVerified?: boolean; // Whether the applicant is college verified
+  collegeName?: string; // College name if verified
 }
 
 export interface IJob {
@@ -48,6 +50,8 @@ const JobApplicationSchema = new Schema({
     default: "pending",
   },
   aiScore: Number,
+  collegeVerified: { type: Boolean, default: false },
+  collegeName: String,
 });
 
 const JobSchema = new Schema<IJobDocument>(

@@ -75,6 +75,8 @@ export async function POST(
       appliedAt: new Date(),
       status: "pending" as const,
       aiScore, // Include score if available
+      collegeVerified: dbUser.collegeVerification?.status === "approved",
+      collegeName: dbUser.collegeVerification?.status === "approved" ? dbUser.collegeVerification.collegeName : undefined,
     };
 
     job.applications.push(application);

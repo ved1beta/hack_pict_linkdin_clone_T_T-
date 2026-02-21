@@ -19,6 +19,19 @@ export interface IInterview {
   createdAt: Date;
 }
 
+// College Verification interface
+export interface ICollegeVerification {
+  collegeName: string;
+  collegeEmail: string;
+  studentId: string;
+  department?: string;
+  graduationYear?: number;
+  status: "pending" | "approved" | "rejected";
+  submittedAt: Date;
+  reviewedAt?: Date;
+  rejectionReason?: string;
+}
+
 export interface IUser {
   userId: string; // Clerk user ID
   userType?: UserType;
@@ -39,6 +52,9 @@ export interface IUser {
   // Recommendations and Interviews
   recommendations?: IRecommendation[];
   interviews?: IInterview[];
+  
+  // College Verification (for students)
+  collegeVerification?: ICollegeVerification;
   
   codingProfiles?: {
     leetcode?: {
@@ -156,6 +172,39 @@ const UserSchema = new Schema<IUserDocument>(
         },
       },
     ],
+    
+    // College Verification
+    collegeVerification: {
+      collegeName: {
+        type: String,
+      },
+      collegeEmail: {
+        type: String,
+      },
+      studentId: {
+        type: String,
+      },
+      department: {
+        type: String,
+      },
+      graduationYear: {
+        type: Number,
+      },
+      status: {
+        type: String,
+        enum: ["pending", "approved", "rejected"],
+        default: "pending",
+      },
+      submittedAt: {
+        type: Date,
+      },
+      reviewedAt: {
+        type: Date,
+      },
+      rejectionReason: {
+        type: String,
+      },
+    },
     
     // Coding Profiles
     codingProfiles: {

@@ -5,7 +5,7 @@ import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import { useState } from "react";
 import { toast } from "sonner";
-import { UserPlus, UserMinus, MapPin, Briefcase, Award } from "lucide-react";
+import { UserPlus, UserMinus, MapPin, Briefcase, Award, Shield } from "lucide-react";
 import Link from "next/link";
 
 interface UserCardUser {
@@ -19,6 +19,10 @@ interface UserCardUser {
   companyName?: string;
   skills?: string[];
   recommendations?: { companyName: string; jobId?: string }[];
+  collegeVerification?: {
+    collegeName: string;
+    status: string;
+  };
 }
 
 interface UserCardProps {
@@ -124,6 +128,16 @@ function UserCard({ user, currentUserId, isFollowing: initialIsFollowing }: User
           </div>
         )}
       </div>
+
+      {/* College Verification Badge */}
+      {user.collegeVerification?.status === "approved" && (
+        <div className="w-full">
+          <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-300 text-xs w-full justify-center">
+            <Shield className="h-3 w-3 mr-1" />
+            Verified - {user.collegeVerification.collegeName}
+          </Badge>
+        </div>
+      )}
 
       {/* NEW: Recommendations Badge */}
       {user.recommendations && user.recommendations.length > 0 && (

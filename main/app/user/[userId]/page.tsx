@@ -5,7 +5,7 @@ import { User } from "@/mongodb/models/user";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { MapPin, Briefcase, Mail, Calendar, GraduationCap, Award, Star, Clock } from "lucide-react";
+import { MapPin, Briefcase, Mail, Calendar, GraduationCap, Award, Star, Clock, Shield } from "lucide-react";
 import CodingProfileBadges from "@/components/CodingProfileBadges";
 import Link from "next/link";
 
@@ -86,6 +86,25 @@ async function UserProfilePage({ params }: UserProfilePageProps) {
                       @{serializedUser.firstName?.toLowerCase() || "user"}
                     </p>
                   </div>
+
+                  {/* College Verification Badge - For Students */}
+                  {serializedUser.userType === "student" && serializedUser.collegeVerification && serializedUser.collegeVerification.status === "approved" && (
+                    <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+                      <div className="flex items-center gap-2">
+                        <Shield className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                        <div>
+                          <h3 className="font-semibold text-blue-900 dark:text-blue-100 text-sm">
+                            Verified Student
+                          </h3>
+                          <p className="text-xs text-blue-700 dark:text-blue-300">
+                            {serializedUser.collegeVerification.collegeName}
+                            {serializedUser.collegeVerification.department && ` • ${serializedUser.collegeVerification.department}`}
+                            {serializedUser.collegeVerification.graduationYear && ` • Class of ${serializedUser.collegeVerification.graduationYear}`}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Recommendations Badges - Visible to Everyone */}
                   {serializedUser.recommendations && serializedUser.recommendations.length > 0 && (

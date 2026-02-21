@@ -3,7 +3,7 @@
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
-import { Mail, Calendar, Download, CheckCircle, XCircle, Clock, User, Star, Award, MapPin, Briefcase, GraduationCap, StarOff, BarChart3, Sparkles, ChevronDown, ChevronUp } from "lucide-react";
+import { Mail, Calendar, Download, CheckCircle, XCircle, Clock, User, Star, Award, MapPin, Briefcase, GraduationCap, StarOff, BarChart3, Sparkles, ChevronDown, ChevronUp, Shield } from "lucide-react";
 import dynamic from "next/dynamic";
 
 const AnalyticsGraphs = dynamic(() => import("@/app/analytics/AnalyticsGraphs"), { ssr: false });
@@ -23,6 +23,8 @@ interface ApplicantCardProps {
     appliedAt: string;
     status: "pending" | "reviewed" | "accepted" | "rejected";
     aiScore?: number;
+    collegeVerified?: boolean;
+    collegeName?: string;
   };
   jobId: string;
   companyName: string;
@@ -245,6 +247,16 @@ function ApplicantCard({ applicant, jobId, companyName }: ApplicantCardProps) {
                   <Calendar className="h-3 w-3 mr-1" />
                   Applied <ReactTimeago date={new Date(applicant.appliedAt)} />
                 </div>
+                
+                {/* College Verification Badge - Show immediately if verified */}
+                {(applicant.collegeVerified || candidate?.collegeVerification?.status === "approved") && (
+                  <div className="mt-2">
+                    <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-300 text-xs">
+                      <Shield className="h-2.5 w-2.5 mr-1" />
+                      Verified Student - {applicant.collegeName || candidate?.collegeVerification?.collegeName}
+                    </Badge>
+                  </div>
+                )}
                 
                 {/* Show ALL recommendations */}
                 {!loadingRecommendations && recommendations.length > 0 && (

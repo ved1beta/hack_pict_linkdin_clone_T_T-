@@ -5,6 +5,7 @@ import { User } from "@/mongodb/models/user";
 import CodingProfilesForm from "@/components/CodingProfilesForm";
 import ResumeUploadATS from "@/components/ResumeUploadATS";
 import GitReposForm from "@/components/GitReposForm";
+import CollegeVerificationForm from "@/components/CollegeVerificationForm";
 import { Settings } from "lucide-react";
 
 export default async function SettingsPage() {
@@ -40,6 +41,9 @@ export default async function SettingsPage() {
 
         {serializedUser.userType === "student" && (
           <>
+            <div className="mb-8">
+              <CollegeVerificationForm />
+            </div>
             <div className="mb-8">
               <ResumeUploadATS />
             </div>
