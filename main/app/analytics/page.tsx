@@ -208,6 +208,7 @@ async function AnalyticsPage() {
       firstName: dbUser.firstName,
       lastName: dbUser.lastName,
       skills: dbUser.skills || [],
+      githubUsername: (dbUser as any).githubUsername || "",
     },
     git: {
       repos: (gitRepos as any[]).map((r) => ({

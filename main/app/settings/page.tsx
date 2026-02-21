@@ -5,6 +5,8 @@ import { User } from "@/mongodb/models/user";
 import CodingProfilesForm from "@/components/CodingProfilesForm";
 import ResumeUploadATS from "@/components/ResumeUploadATS";
 import GitReposForm from "@/components/GitReposForm";
+import GitHubConnect from "@/components/GitHubConnect";
+import LinkedInConnect from "@/components/LinkedInConnect";
 import CollegeVerificationForm from "@/components/CollegeVerificationForm";
 import { Settings } from "lucide-react";
 
@@ -35,20 +37,30 @@ export default async function SettingsPage() {
             <h1 className="text-3xl font-bold">Settings</h1>
           </div>
           <p className="text-muted-foreground">
-            Manage your coding profiles and preferences
+            Connect GitHub & LinkedIn for auto-profile, manage repos, and preferences
           </p>
         </div>
 
         {serializedUser.userType === "student" && (
           <>
             <div className="mb-8">
-              <CollegeVerificationForm />
+              <GitHubConnect />
             </div>
             <div className="mb-8">
-              <ResumeUploadATS />
+              <LinkedInConnect />
             </div>
             <div className="mb-8">
               <GitReposForm />
+            </div>
+            <div className="mb-8">
+              <CollegeVerificationForm />
+            </div>
+            <div className="mb-8">
+              <h3 className="text-lg font-semibold mb-2">Resume Upload (optional)</h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                Upload a PDF/DOCX if you prefer. Your GitHub + LinkedIn data can auto-generate a resume instead.
+              </p>
+              <ResumeUploadATS />
             </div>
           </>
         )}

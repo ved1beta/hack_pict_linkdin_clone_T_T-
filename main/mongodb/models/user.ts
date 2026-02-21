@@ -57,6 +57,10 @@ export interface IUser {
   
   // College Verification (for students)
   collegeVerification?: ICollegeVerification;
+
+  githubUsername?: string;
+  linkedInUrl?: string;
+  linkedInText?: string;
   
   codingProfiles?: {
     leetcode?: {
@@ -122,6 +126,9 @@ const UserSchema = new Schema<IUserDocument>(
     location: String,
     bio: String,
     experience: String,
+    githubUsername: String,
+    linkedInUrl: String,
+    linkedInText: String,
     
     // Connections
     connections: {
