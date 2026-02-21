@@ -13,3 +13,6 @@ to do--
 7) road map
 8) a progress graph job specific score and open soure contribution score and public repo score (in git tab) and improvements in the project
 9) reference of resume to the chat bot
+
+10) soft skills
+11) 
