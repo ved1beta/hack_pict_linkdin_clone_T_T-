@@ -6,7 +6,7 @@ import { ParsedResume } from "@/mongodb/models/parsedResume";
 import { User } from "@/mongodb/models/user";
 import { getRoadmapSlugFromSkills, getRoadmapUrl } from "@/lib/roadmap-mapper";
 import { searchYouTube } from "@/lib/youtube";
-import { chatWithProvider } from "@/lib/chat-providers";
+import { chatWithClaude } from "@/lib/localClaude";
 
 export async function GET() {
   try {
@@ -50,7 +50,7 @@ export async function GET() {
         
         Respond with ONLY a JSON array of strings. Example: ["React", "Python"]`;
         
-        const response = await chatWithProvider(
+        const response = await chatWithClaude(
           [{ role: "user", content: prompt }],
           "You are a helpful assistant that filters skill lists."
         );

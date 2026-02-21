@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { chatWithProvider } from "@/lib/chat-providers";
+import { chatWithClaude } from "@/lib/localClaude";
 import { currentUser } from "@clerk/nextjs/server";
 import connectDB from "@/mongodb/db";
 import { ParsedResume } from "@/mongodb/models/parsedResume";
@@ -91,9 +91,9 @@ export async function POST(request: Request) {
       ? `${BASE_SYSTEM_PROMPT}\n\nHere is the user's profile and resume information for context (use this to give personalized advice):\n${resumeContext}`
       : BASE_SYSTEM_PROMPT;
 
-    const text = await chatWithProvider(messages, systemPrompt);
+    const text = await chatWithClaude(messages, systemPrompt);
 
-    return NextResponse.json({ message: text, provider: "openrouter" });
+    return NextResponse.json({ message: text, provider: "groq" });
   } catch (error) {
     console.error("Chat API error:", error);
     return NextResponse.json(

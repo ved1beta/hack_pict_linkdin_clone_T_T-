@@ -13,7 +13,7 @@ import { GitRepo } from "@/mongodb/models/gitRepo";
 import { ParsedResume } from "@/mongodb/models/parsedResume";
 import { ResumeUpload } from "@/mongodb/models/resumeUpload";
 import { Job } from "@/mongodb/models/job";
-import { chatCompletion } from "@/lib/openrouter";
+import { chatWithClaude } from "@/lib/localClaude";
 
 const GITHUB_API = "https://api.github.com";
 
@@ -176,14 +176,10 @@ Rules:
 - If GitHub repos show relevant work, include them as projects
 - DO NOT fabricate experience. Only use what's in the profile.`;
 
-    // Use OpenRouter for resume generation
-    const resumeText = await chatCompletion([
-      { role: "system", content: "You write professional, ATS-optimized resumes. Output plain text only." },
+    // Use local Groq for resume generation
+    const resumeText = await chatWithClaude([
       { role: "user", content: prompt },
-    ], {
-      temperature: 0.3,
-      maxTokens: 1500,
-    });
+    ], "You write professional, ATS-optimized resumes. Output plain text only.");
 
     return NextResponse.json({ success: true, resumeText, jobTitle });
   } catch (err) {

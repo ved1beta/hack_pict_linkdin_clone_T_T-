@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import dynamic from "next/dynamic";
+import { analyzeResumeGeneral, analyzeGitPortfolio } from "@/lib/localClaude";
 
 const GitHubContribGraph = dynamic(() => import("@/components/GitHubContribGraph"), { ssr: false });
 
@@ -164,30 +165,42 @@ export default function AnalyticsClient({ data }: AnalyticsClientProps) {
 
   const runAnalysis = async (jobId?: string) => {
     setAnalyzing(true);
-    setAnalyzeStatus("Connecting to AI…");
+    setAnalyzeStatus("Starting local Claude analysis…");
     try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 60000);
-      setAnalyzeStatus("AI is analyzing your profile…");
-      const res = await fetch("/api/ats/analyze", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ jobId: jobId || undefined }),
-        signal: controller.signal,
+      setAnalyzeStatus("Claude is analyzing your profile…");
+
+      // Build resume text from available data
+      const resumeText = `
+${user.firstName} ${user.lastName}
+Skills: ${user.skills.join(", ")}
+
+${latestParsed?.workExperience?.map((exp: any) => `${exp.role} at ${exp.company} (${exp.duration})`).join("\n") || ""}
+
+${latestParsed?.education?.map((edu: any) => `${edu.degree} from ${edu.institution} (${edu.year})`).join("\n") || ""}
+      `.trim();
+
+      const analysis = await analyzeResumeGeneral(resumeText);
+
+      setAnalyzeStatus("Analysis complete! Saving…");
+
+      // Save to localStorage for persistence
+      const analyses = JSON.parse(localStorage.getItem("resumeAnalyses") || "[]");
+      analyses.unshift({
+        ...analysis,
+        userId: "local",
+        jobId: jobId || null,
+        analyzedAt: new Date().toISOString(),
       });
-      clearTimeout(timeout);
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Analysis failed");
-      }
-      setAnalyzeStatus("Done! Refreshing…");
-      window.location.reload();
+      localStorage.setItem("resumeAnalyses", JSON.stringify(analyses));
+
+      setAnalyzeStatus("Done! Refresh to see results.");
+      setTimeout(() => window.location.reload(), 2000);
     } catch (e: any) {
-      if (e?.name === "AbortError") {
-        setAnalyzeStatus("Timed out – AI is slow. Try again.");
-      } else {
-        setAnalyzeStatus(e instanceof Error ? e.message : "Analysis failed");
-      }
+      setAnalyzeStatus(
+        e instanceof Error
+          ? e.message
+          : "Analysis failed - check your Claude API key in .env"
+      );
       console.error(e);
     } finally {
       setAnalyzing(false);
@@ -196,26 +209,40 @@ export default function AnalyticsClient({ data }: AnalyticsClientProps) {
 
   const runGitAnalysis = async () => {
     setAnalyzingGit(true);
-    setGitStatus("Fetching your commits from GitHub…");
+    setGitStatus("Starting local Claude analysis of your repos…");
     try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 60000);
-      setGitStatus("AI is analyzing your repos…");
-      const res = await fetch("/api/git/analyze", {
-        method: "POST",
-        signal: controller.signal,
+      setGitStatus("Claude is analyzing your GitHub portfolio…");
+
+      const repoSummary = gitRepos.map((r) => ({
+        repoName: r.repoName,
+        languages: r.languages || [],
+        owner: r.owner,
+      }));
+
+      const analysis = await analyzeGitPortfolio(repoSummary);
+
+      setGitStatus("Analysis complete! Saving…");
+
+      // Save to localStorage for persistence
+      const gitAnalyses = JSON.parse(
+        localStorage.getItem("gitAnalyses") || "[]"
+      );
+      gitAnalyses.unshift({
+        ...analysis,
+        userId: "local",
+        repoSummary,
+        analyzedAt: new Date().toISOString(),
       });
-      clearTimeout(timeout);
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error || "Analysis failed");
-      setGitStatus("Done! Refreshing…");
-      window.location.reload();
+      localStorage.setItem("gitAnalyses", JSON.stringify(gitAnalyses));
+
+      setGitStatus("Done! Refresh to see results.");
+      setTimeout(() => window.location.reload(), 2000);
     } catch (e: any) {
-      if (e?.name === "AbortError") {
-        setGitStatus("Timed out – AI is slow. Try again.");
-      } else {
-        setGitStatus(e instanceof Error ? e.message : "Git analysis failed");
-      }
+      setGitStatus(
+        e instanceof Error
+          ? e.message
+          : "Analysis failed - check your Claude API key in .env"
+      );
       console.error(e);
     } finally {
       setAnalyzingGit(false);

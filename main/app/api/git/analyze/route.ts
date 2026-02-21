@@ -5,7 +5,7 @@ import { GitRepo } from "@/mongodb/models/gitRepo";
 import { GitAnalysis } from "@/mongodb/models/gitAnalysis";
 import { User } from "@/mongodb/models/user";
 import { fetchUserCommits } from "@/lib/github";
-import { chatCompletion } from "@/lib/openrouter";
+import { chatWithClaude } from "@/lib/localClaude";
 
 async function fetchRepoInfo(owner: string, repo: string) {
   const res = await fetch(
@@ -88,10 +88,11 @@ export async function POST() {
       )
       .join("\n");
 
-    const prompt = `You are a senior developer reviewing a candidate's GitHub portfolio.
+    const systemPrompt = `You are a senior developer reviewing a candidate's GitHub portfolio.
 The "My commits" shown are ONLY this candidate's commits (filtered by author). Other contributors' work is excluded.
+Be constructive. Consider: tech stack diversity, project complexity, documentation, language usage.`;
 
-REPOSITORIES:
+    const userPrompt = `REPOSITORIES:
 ${summary}
 
 Analyze the portfolio and respond with ONLY a valid JSON object (no markdown, no code blocks):
@@ -100,16 +101,12 @@ Analyze the portfolio and respond with ONLY a valid JSON object (no markdown, no
   "strengths": ["string"],
   "improvements": ["string"],
   "recommendation": "string - brief actionable advice"
-}
+}`;
 
-Be constructive. Consider: tech stack diversity, project complexity, documentation, language usage.`;
-
-    // Use OpenRouter for GitHub analysis
-    const text = await chatCompletion([
-      { role: "user", content: prompt }
-    ], {
-      temperature: 0.2,
-    });
+    // Use local Groq for GitHub analysis
+    const text = await chatWithClaude([
+      { role: "user", content: userPrompt }
+    ], systemPrompt);
 
     const jsonMatch = text.replace(/```json\n?|\n?```/g, "").trim();
     const parsed = JSON.parse(jsonMatch);
