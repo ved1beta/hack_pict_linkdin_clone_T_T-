@@ -12,6 +12,7 @@ export interface IJobApplication {
   collegeVerified?: boolean; // Whether the applicant is college verified
   collegeName?: string; // College name if verified
   cgpa?: number; // Student's CGPA
+  branch?: string; // Engineering branch
 }
 
 export interface IJob {
@@ -36,6 +37,7 @@ export interface IJob {
     requireCollegeVerification?: boolean;
     minCGPA?: number;
     specificColleges?: string[]; // List of allowed colleges
+    specificBranches?: string[]; // List of allowed engineering branches
   };
 }
 
@@ -60,6 +62,7 @@ const JobApplicationSchema = new Schema({
   collegeVerified: { type: Boolean, default: false },
   collegeName: String,
   cgpa: Number,
+  branch: String,
 });
 
 const JobSchema = new Schema<IJobDocument>(
@@ -97,6 +100,7 @@ const JobSchema = new Schema<IJobDocument>(
       requireCollegeVerification: { type: Boolean, default: false },
       minCGPA: { type: Number, min: 0, max: 10 },
       specificColleges: [String],
+      specificBranches: [String],
     },
   },
   {

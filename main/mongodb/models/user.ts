@@ -25,6 +25,7 @@ export interface ICollegeVerification {
   collegeEmail: string;
   studentId: string;
   department?: string;
+  branch?: string; // Engineering branch (CS, IT, Mechanical, etc.)
   graduationYear?: number;
   cgpa?: number; // CGPA/GPA
   status: "pending" | "approved" | "rejected";
@@ -186,6 +187,9 @@ const UserSchema = new Schema<IUserDocument>(
         type: String,
       },
       department: {
+        type: String,
+      },
+      branch: {
         type: String,
       },
       graduationYear: {

@@ -28,6 +28,8 @@ function PostJobForm({
   const [currentRequirement, setCurrentRequirement] = useState("");
   const [specificColleges, setSpecificColleges] = useState<string[]>([]);
   const [currentCollege, setCurrentCollege] = useState("");
+  const [specificBranches, setSpecificBranches] = useState<string[]>([]);
+  const [currentBranch, setCurrentBranch] = useState("");
 
   const addSkill = () => {
     if (currentSkill.trim() && !skills.includes(currentSkill.trim())) {
@@ -62,6 +64,17 @@ function PostJobForm({
     setSpecificColleges(specificColleges.filter((c) => c !== college));
   };
 
+  const addBranch = () => {
+    if (currentBranch && !specificBranches.includes(currentBranch)) {
+      setSpecificBranches([...specificBranches, currentBranch]);
+      setCurrentBranch("");
+    }
+  };
+
+  const removeBranch = (branch: string) => {
+    setSpecificBranches(specificBranches.filter((b) => b !== branch));
+  };
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
@@ -85,6 +98,7 @@ function PostJobForm({
         requireCollegeVerification: formData.get("requireCollegeVerification") === "on",
         minCGPA: formData.get("minCGPA") ? parseFloat(formData.get("minCGPA") as string) : undefined,
         specificColleges: specificColleges.length > 0 ? specificColleges : undefined,
+        specificBranches: specificBranches.length > 0 ? specificBranches : undefined,
       },
     };
 
@@ -343,6 +357,51 @@ function PostJobForm({
                 <button
                   type="button"
                   onClick={() => removeCollege(college)}
+                  className="ml-2 hover:text-destructive"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </Badge>
+            ))}
+          </div>
+        </div>
+
+        {/* Specific Branches */}
+        <div>
+          <label className="block text-sm font-semibold mb-2">
+            Specific Engineering Branches (Optional)
+          </label>
+          <div className="flex space-x-2 mb-3">
+            <select
+              value={currentBranch}
+              onChange={(e) => setCurrentBranch(e.target.value)}
+              className="input-modern flex-1"
+            >
+              <option value="">Select Branch</option>
+              <option value="Computer Science">Computer Science</option>
+              <option value="Information Technology">Information Technology</option>
+              <option value="Electronics">Electronics & Communication</option>
+              <option value="Electrical">Electrical Engineering</option>
+              <option value="Mechanical">Mechanical Engineering</option>
+              <option value="Civil">Civil Engineering</option>
+              <option value="Chemical">Chemical Engineering</option>
+              <option value="Biotechnology">Biotechnology</option>
+              <option value="Aerospace">Aerospace Engineering</option>
+            </select>
+            <Button type="button" onClick={addBranch} variant="secondary">
+              Add
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground mb-2">
+            Leave empty to allow all branches
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {specificBranches.map((branch) => (
+              <Badge key={branch} variant="secondary" className="pl-3 pr-1 py-1">
+                {branch}
+                <button
+                  type="button"
+                  onClick={() => removeBranch(branch)}
                   className="ml-2 hover:text-destructive"
                 >
                   <X className="h-3 w-3" />

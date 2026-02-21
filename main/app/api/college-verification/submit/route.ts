@@ -17,7 +17,7 @@ export async function POST(request: Request) {
 
     await connectDB();
 
-    const { collegeName, collegeEmail, studentId, department, graduationYear, cgpa } = await request.json();
+    const { collegeName, collegeEmail, studentId, department, branch, graduationYear, cgpa } = await request.json();
 
     if (!collegeName || !collegeEmail || !studentId) {
       return NextResponse.json(
@@ -83,7 +83,9 @@ export async function POST(request: Request) {
       collegeEmail,
       studentId,
       department,
+      branch,
       graduationYear,
+      cgpa,
       status: "pending",
       submittedAt: new Date(),
     });
@@ -96,6 +98,7 @@ export async function POST(request: Request) {
       collegeEmail,
       studentId,
       department,
+      branch,
       graduationYear,
       cgpa,
       status: "pending",

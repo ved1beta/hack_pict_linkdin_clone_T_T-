@@ -16,6 +16,7 @@ export interface FilterState {
   collegeVerified: boolean | null;
   minCGPA: number | null;
   specificCollege: string;
+  specificBranch: string;
   status: string;
 }
 
@@ -25,6 +26,7 @@ export default function ApplicantsFilter({ onFilterChange }: ApplicantsFilterPro
     collegeVerified: null,
     minCGPA: null,
     specificCollege: "",
+    specificBranch: "",
     status: "all",
   });
 
@@ -41,6 +43,7 @@ export default function ApplicantsFilter({ onFilterChange }: ApplicantsFilterPro
     if (newFilters.collegeVerified !== null) count++;
     if (newFilters.minCGPA !== null) count++;
     if (newFilters.specificCollege) count++;
+    if (newFilters.specificBranch) count++;
     if (newFilters.status !== "all") count++;
     setActiveFiltersCount(count);
   };
@@ -51,6 +54,7 @@ export default function ApplicantsFilter({ onFilterChange }: ApplicantsFilterPro
       collegeVerified: null,
       minCGPA: null,
       specificCollege: "",
+      specificBranch: "",
       status: "all",
     };
     setFilters(clearedFilters);
@@ -139,6 +143,28 @@ export default function ApplicantsFilter({ onFilterChange }: ApplicantsFilterPro
             value={filters.specificCollege}
             onChange={(e) => updateFilter("specificCollege", e.target.value)}
           />
+        </div>
+
+        {/* Specific Branch */}
+        <div className="space-y-2">
+          <Label htmlFor="specificBranch">Engineering Branch</Label>
+          <select
+            id="specificBranch"
+            className="input-modern w-full"
+            value={filters.specificBranch}
+            onChange={(e) => updateFilter("specificBranch", e.target.value)}
+          >
+            <option value="">All Branches</option>
+            <option value="Computer Science">Computer Science</option>
+            <option value="Information Technology">Information Technology</option>
+            <option value="Electronics">Electronics & Communication</option>
+            <option value="Electrical">Electrical Engineering</option>
+            <option value="Mechanical">Mechanical Engineering</option>
+            <option value="Civil">Civil Engineering</option>
+            <option value="Chemical">Chemical Engineering</option>
+            <option value="Biotechnology">Biotechnology</option>
+            <option value="Aerospace">Aerospace Engineering</option>
+          </select>
         </div>
 
         {/* Application Status */}

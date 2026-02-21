@@ -20,6 +20,7 @@ interface CollegeVerificationData {
   collegeEmail: string;
   studentId: string;
   department?: string;
+  branch?: string;
   graduationYear?: number;
   cgpa?: number;
   status: "pending" | "approved" | "rejected";
@@ -36,6 +37,7 @@ export default function CollegeVerificationForm() {
     collegeEmail: "",
     studentId: "",
     department: "",
+    branch: "",
     graduationYear: new Date().getFullYear(),
     cgpa: 0,
   });
@@ -56,6 +58,7 @@ export default function CollegeVerificationForm() {
             collegeEmail: data.collegeVerification.collegeEmail || "",
             studentId: data.collegeVerification.studentId || "",
             department: data.collegeVerification.department || "",
+            branch: data.collegeVerification.branch || "",
             graduationYear: data.collegeVerification.graduationYear || new Date().getFullYear(),
             cgpa: data.collegeVerification.cgpa || 0,
           });
@@ -267,9 +270,33 @@ export default function CollegeVerificationForm() {
                   name="department"
                   value={formData.department}
                   onChange={handleChange}
-                  placeholder="e.g., Computer Science"
+                  placeholder="e.g., Engineering"
                   disabled={loading}
                 />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="branch">Engineering Branch</Label>
+                <select
+                  id="branch"
+                  name="branch"
+                  value={formData.branch}
+                  onChange={handleChange as any}
+                  className="input-modern w-full"
+                  disabled={loading}
+                >
+                  <option value="">Select Branch</option>
+                  <option value="Computer Science">Computer Science</option>
+                  <option value="Information Technology">Information Technology</option>
+                  <option value="Electronics">Electronics & Communication</option>
+                  <option value="Electrical">Electrical Engineering</option>
+                  <option value="Mechanical">Mechanical Engineering</option>
+                  <option value="Civil">Civil Engineering</option>
+                  <option value="Chemical">Chemical Engineering</option>
+                  <option value="Biotechnology">Biotechnology</option>
+                  <option value="Aerospace">Aerospace Engineering</option>
+                  <option value="Other">Other</option>
+                </select>
               </div>
 
               <div className="space-y-2">

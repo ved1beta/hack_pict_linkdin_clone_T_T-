@@ -113,6 +113,7 @@ export async function POST(
       collegeVerified: dbUser.collegeVerification?.status === "approved",
       collegeName: dbUser.collegeVerification?.status === "approved" ? dbUser.collegeVerification.collegeName : undefined,
       cgpa: dbUser.collegeVerification?.cgpa,
+      branch: dbUser.collegeVerification?.branch,
     };
 
     job.applications.push(application);

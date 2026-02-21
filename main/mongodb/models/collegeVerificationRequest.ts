@@ -8,7 +8,9 @@ export interface ICollegeVerificationRequest {
   collegeEmail: string;
   studentId: string;
   department?: string;
+  branch?: string;
   graduationYear?: number;
+  cgpa?: number;
   status: "pending" | "approved" | "rejected";
   submittedAt: Date;
   reviewedAt?: Date;
@@ -52,8 +54,16 @@ const CollegeVerificationRequestSchema = new Schema<ICollegeVerificationRequestD
     department: {
       type: String,
     },
+    branch: {
+      type: String,
+    },
     graduationYear: {
       type: Number,
+    },
+    cgpa: {
+      type: Number,
+      min: 0,
+      max: 10,
     },
     status: {
       type: String,

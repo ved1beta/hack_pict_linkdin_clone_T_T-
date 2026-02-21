@@ -3,7 +3,9 @@
 import { useState, useMemo } from "react";
 import ApplicantCard from "./ApplicantCard";
 import ApplicantsFilter, { FilterState } from "./ApplicantsFilter";
+import BulkActionsBar from "./BulkActionsBar";
 import { Users } from "lucide-react";
+import { Checkbox } from "./ui/checkbox";
 
 interface ApplicantsListProps {
   applicants: any[];
@@ -17,8 +19,10 @@ export default function ApplicantsList({ applicants, jobId, companyName }: Appli
     collegeVerified: null,
     minCGPA: null,
     specificCollege: "",
+    specificBranch: "",
     status: "all",
   });
+  const [selectedCandidates, setSelectedCandidates] = useState<string[]>([]);
 
   const filteredApplicants = useMemo(() => {
     return applicants.filter((applicant) => {
@@ -49,6 +53,13 @@ export default function ApplicantsList({ applicants, jobId, companyName }: Appli
         }
       }
 
+      // Specific branch filter
+      if (filters.specificBranch) {
+        if (!applicant.branch || applicant.branch !== filters.specificBranch) {
+          return false;
+        }
+      }
+
       // Status filter
       if (filters.status !== "all") {
         if (applicant.status !== filters.status) return false;
@@ -58,31 +69,70 @@ export default function ApplicantsList({ applicants, jobId, companyName }: Appli
     });
   }, [applicants, filters]);
 
+  const toggleCandidate = (userId: string) => {
+    setSelectedCandidates((prev) =>
+      prev.includes(userId) ? prev.filter((id) => id !== userId) : [...prev, userId]
+    );
+  };
+
+  const toggleAll = () => {
+    if (selectedCandidates.length === filteredApplicants.length) {
+      setSelectedCandidates([]);
+    } else {
+      setSelectedCandidates(filteredApplicants.map((app) => app.userId));
+    }
+  };
+
+  const clearSelection = () => {
+    setSelectedCandidates([]);
+  };
+
   return (
     <div className="space-y-6">
       {/* Filter Component */}
       <ApplicantsFilter onFilterChange={setFilters} />
 
-      {/* Results Count */}
+      {/* Results Count and Bulk Actions */}
       <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">
-          Showing {filteredApplicants.length} of {applicants.length} applicants
-        </p>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <Checkbox
+              checked={
+                filteredApplicants.length > 0 &&
+                selectedCandidates.length === filteredApplicants.length
+              }
+              onCheckedChange={toggleAll}
+            />
+            <span className="text-sm text-muted-foreground">Select All</span>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            Showing {filteredApplicants.length} of {applicants.length} applicants
+          </p>
+        </div>
       </div>
 
       {/* Applicants List */}
       {filteredApplicants.length > 0 ? (
         <div className="space-y-4">
           {filteredApplicants.map((applicant: any) => (
-            <ApplicantCard
-              key={applicant._id?.toString() || applicant.userId}
-              applicant={{
-                ...applicant,
-                _id: applicant._id?.toString() || applicant.userId,
-              }}
-              jobId={jobId}
-              companyName={companyName}
-            />
+            <div key={applicant._id?.toString() || applicant.userId} className="flex items-start gap-3">
+              <div className="pt-6">
+                <Checkbox
+                  checked={selectedCandidates.includes(applicant.userId)}
+                  onCheckedChange={() => toggleCandidate(applicant.userId)}
+                />
+              </div>
+              <div className="flex-1">
+                <ApplicantCard
+                  applicant={{
+                    ...applicant,
+                    _id: applicant._id?.toString() || applicant.userId,
+                  }}
+                  jobId={jobId}
+                  companyName={companyName}
+                />
+              </div>
+            </div>
           ))}
         </div>
       ) : (
@@ -94,6 +144,14 @@ export default function ApplicantsList({ applicants, jobId, companyName }: Appli
           </p>
         </div>
       )}
+
+      {/* Bulk Actions Bar */}
+      <BulkActionsBar
+        selectedCandidates={selectedCandidates}
+        allApplicants={applicants}
+        onClearSelection={clearSelection}
+        jobId={jobId}
+      />
     </div>
   );
 }
