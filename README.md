@@ -17,3 +17,4 @@ to do--
 10) soft skills
 11) team tagging -- projects upload and tag members and git repo collaborators option 
 12) ML DL
+13) difference between the highest ranking candidate and the lowest 
