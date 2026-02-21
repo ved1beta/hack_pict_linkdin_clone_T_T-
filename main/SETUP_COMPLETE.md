@@ -26,8 +26,10 @@ Your app is now fully powered by **Groq AI** - completely free with unlimited re
 ## 📋 Your Configuration
 
 ```env
-NEXT_PUBLIC_GROQ_API_KEY=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
+NEXT_PUBLIC_GROQ_API_KEY=your_groq_api_key_here
 ```
+
+See `GROQ_FREE_AI.md` for how to get your free API key.
 
 Model: **Llama 3.3 70B Versatile**
 - Fast, accurate, free
