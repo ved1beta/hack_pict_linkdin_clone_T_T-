@@ -2,12 +2,33 @@ import OpenAI from "openai";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { ResumeAnalysis } from "@/mongodb/models/resumeAnalysis";
 import { Job } from "@/mongodb/models/job";
+import { GitRepo } from "@/mongodb/models/gitRepo";
 
-function buildResumeText(user: any): string {
+const GITHUB_API = "https://api.github.com";
+
+async function fetchRepoLanguages(owner: string, repo: string): Promise<string[]> {
+  try {
+    const res = await fetch(`${GITHUB_API}/repos/${owner}/${repo}/languages`, {
+      headers: {
+        Accept: "application/vnd.github.v3+json",
+        "User-Agent": "HEXjuy-Career-Platform",
+        ...(process.env.GITHUB_TOKEN ? { Authorization: `Bearer ${process.env.GITHUB_TOKEN}` } : {}),
+      },
+    });
+    if (!res.ok) return [];
+    const langs = await res.json();
+    return Object.keys(langs);
+  } catch {
+    return [];
+  }
+}
+
+async function buildResumeText(user: any, userId: string): Promise<string> {
   const parts: string[] = [];
   if (user.firstName || user.lastName) {
     parts.push(`Name: ${user.firstName || ""} ${user.lastName || ""}`);
   }
+  if (user.email) parts.push(`Email: ${user.email}`);
   if (user.bio) parts.push(`Bio: ${user.bio}`);
   if (user.experience) parts.push(`Experience: ${user.experience}`);
   if (user.education) parts.push(`Education: ${user.education}`);
@@ -15,7 +36,30 @@ function buildResumeText(user: any): string {
     parts.push(`Skills: ${user.skills.join(", ")}`);
   }
   if (user.location) parts.push(`Location: ${user.location}`);
-  return parts.join("\n\n") || "No profile information available.";
+
+  // LinkedIn profile text
+  if (user.linkedInText?.trim()) {
+    parts.push("\n--- LinkedIn Profile ---");
+    parts.push(user.linkedInText.trim());
+  }
+
+  // GitHub repos summary
+  if (user.githubUsername) {
+    try {
+      const repos = await GitRepo.find({ userId }).lean();
+      if (repos.length > 0) {
+        parts.push("\n--- GitHub Projects ---");
+        for (const r of repos as any[]) {
+          const langs = await fetchRepoLanguages(r.owner, r.repoName);
+          parts.push(`${r.repoName}: ${langs.join(", ") || "N/A"}`);
+        }
+      }
+    } catch {
+      // Non-fatal
+    }
+  }
+
+  return parts.join("\n") || "No profile information available.";
 }
 
 export async function runATSAnalysis(
@@ -30,7 +74,7 @@ export async function runATSAnalysis(
 
   const resumeText = (uploadedResumeText && uploadedResumeText.trim())
     ? uploadedResumeText.trim()
-    : buildResumeText(user);
+    : await buildResumeText(user, userId);
 
   let jobDetails = "";
   let jobTitle = "";
@@ -111,11 +155,12 @@ Set jobMatchScore, matchedSkills, missingSkills to empty arrays if not applicabl
     return result.response.text();
   };
 
+  // Prefer Gemini (faster) then Kimi as fallback
   let text: string;
-  if (kimiKey) {
-    text = await callKimi();
-  } else if (geminiKey) {
+  if (geminiKey) {
     text = await callGemini();
+  } else if (kimiKey) {
+    text = await callKimi();
   } else {
     throw new Error("No AI provider configured");
   }

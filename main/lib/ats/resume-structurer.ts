@@ -47,6 +47,98 @@ Required schema (use empty string or empty array for missing fields):
 Parse duration strings like "2020-2022" or "2 years" to estimate total_years_experience as a number.
 Resume text:`;
 
+const GITHUB_PROMPT = `The following is a developer's GitHub profile and repository activity. Infer a professional resume from it.
+Return ONLY valid JSON with no markdown, no code blocks:
+{
+  "name": "",
+  "email": "",
+  "phone": "",
+  "skills": [],
+  "work_experience": [{"company": "", "role": "", "duration": ""}],
+  "education": [{"institution": "", "degree": "", "year": ""}],
+  "total_years_experience": 0
+}
+Extract skills from: programming languages used, tech in repo descriptions, commit patterns.
+Treat notable projects as work_experience if they seem professional. Estimate total_years_experience from commit history.
+Profile and repo data:`;
+
+async function structureFromGitHubWithAI(
+  profileText: string,
+  fn: (fullPrompt: string, apiKey: string) => Promise<StructuredResume>,
+  apiKey: string
+): Promise<StructuredResume> {
+  const fullPrompt = GITHUB_PROMPT + "\n\n" + profileText.slice(0, 10000);
+  return fn(fullPrompt, apiKey);
+}
+
+export async function structureResumeFromGitHub(
+  profileText: string
+): Promise<StructuredResume> {
+  if (!profileText || profileText.trim().length < 30) {
+    throw new Error("GitHub profile data too short");
+  }
+  const kimiKey = process.env.KIMI_K2_API_KEY;
+  const openaiKey = process.env.OPENAI_API_KEY;
+  const geminiKey = process.env.GEMINI_API_KEY;
+  if (kimiKey) return structureFromGitHubWithAI(profileText, structureWithCustomPrompt, kimiKey);
+  if (openaiKey) return structureFromGitHubWithAI(profileText, structureWithCustomPromptOpenAI, openaiKey);
+  if (geminiKey) return structureFromGitHubWithAI(profileText, structureWithCustomPromptGemini, geminiKey);
+  throw new Error("Set KIMI_K2_API_KEY, OPENAI_API_KEY, or GEMINI_API_KEY in .env.local");
+}
+
+async function structureWithCustomPrompt(
+  fullPrompt: string,
+  apiKey: string
+): Promise<StructuredResume> {
+  const openai = new OpenAI({
+    apiKey,
+    baseURL: process.env.KIMI_BASE_URL || "https://integrate.api.nvidia.com/v1",
+  });
+  const response = await openai.chat.completions.create({
+    model: process.env.KIMI_MODEL || "moonshotai/kimi-k2.5",
+    messages: [
+      { role: "system", content: "You extract resume data from developer profiles into strict JSON. Return only valid JSON, no markdown." },
+      { role: "user", content: fullPrompt },
+    ],
+    temperature: 0.1,
+  });
+  const content = response.choices[0]?.message?.content?.trim();
+  if (!content) throw new Error("Empty AI response");
+  return parseStructuredResponse(content);
+}
+
+async function structureWithCustomPromptOpenAI(
+  fullPrompt: string,
+  apiKey: string
+): Promise<StructuredResume> {
+  const openai = new OpenAI({ apiKey });
+  const response = await openai.chat.completions.create({
+    model: "gpt-4o-mini",
+    messages: [
+      { role: "system", content: "You extract resume data from developer profiles into strict JSON. Return only valid JSON, no markdown." },
+      { role: "user", content: fullPrompt },
+    ],
+    temperature: 0.1,
+  });
+  const content = response.choices[0]?.message?.content?.trim();
+  if (!content) throw new Error("Empty AI response");
+  return parseStructuredResponse(content);
+}
+
+async function structureWithCustomPromptGemini(
+  fullPrompt: string,
+  apiKey: string
+): Promise<StructuredResume> {
+  const genAI = new GoogleGenerativeAI(apiKey);
+  const model = genAI.getGenerativeModel({
+    model: process.env.GEMINI_MODEL || "gemini-2.0-flash",
+  });
+  const result = await model.generateContent(fullPrompt);
+  const content = result.response.text()?.trim();
+  if (!content) throw new Error("Empty AI response");
+  return parseStructuredResponse(content);
+}
+
 export async function structureResumeWithAI(
   rawText: string
 ): Promise<StructuredResume> {

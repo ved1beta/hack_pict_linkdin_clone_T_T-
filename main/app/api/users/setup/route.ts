@@ -7,7 +7,7 @@ export async function POST(request: Request) {
     await connectDB();
 
     const body = await request.json();
-    const { userId, email, firstName, lastName, userImage, userType } = body;
+    const { userId, email, firstName, lastName, userImage, userType, githubUsername } = body;
 
     if (!userId || !email || !userType) {
       return NextResponse.json(
@@ -24,6 +24,7 @@ export async function POST(request: Request) {
       lastName,
       userImage,
       userType,
+      ...(githubUsername && { githubUsername: String(githubUsername).trim() }),
     });
 
     return NextResponse.json({ success: true, user }, { status: 200 });
