@@ -26,6 +26,7 @@ export interface ICollegeVerification {
   studentId: string;
   department?: string;
   graduationYear?: number;
+  cgpa?: number; // CGPA/GPA
   status: "pending" | "approved" | "rejected";
   submittedAt: Date;
   reviewedAt?: Date;
@@ -189,6 +190,11 @@ const UserSchema = new Schema<IUserDocument>(
       },
       graduationYear: {
         type: Number,
+      },
+      cgpa: {
+        type: Number,
+        min: 0,
+        max: 10,
       },
       status: {
         type: String,

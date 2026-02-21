@@ -26,6 +26,8 @@ function PostJobForm({
   const [requirements, setRequirements] = useState<string[]>([]);
   const [currentSkill, setCurrentSkill] = useState("");
   const [currentRequirement, setCurrentRequirement] = useState("");
+  const [specificColleges, setSpecificColleges] = useState<string[]>([]);
+  const [currentCollege, setCurrentCollege] = useState("");
 
   const addSkill = () => {
     if (currentSkill.trim() && !skills.includes(currentSkill.trim())) {
@@ -49,6 +51,17 @@ function PostJobForm({
     setRequirements(requirements.filter((_, i) => i !== index));
   };
 
+  const addCollege = () => {
+    if (currentCollege.trim() && !specificColleges.includes(currentCollege.trim())) {
+      setSpecificColleges([...specificColleges, currentCollege.trim()]);
+      setCurrentCollege("");
+    }
+  };
+
+  const removeCollege = (college: string) => {
+    setSpecificColleges(specificColleges.filter((c) => c !== college));
+  };
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
@@ -68,6 +81,11 @@ function PostJobForm({
       salary: formData.get("salary") as string,
       skills,
       requirements,
+      filters: {
+        requireCollegeVerification: formData.get("requireCollegeVerification") === "on",
+        minCGPA: formData.get("minCGPA") ? parseFloat(formData.get("minCGPA") as string) : undefined,
+        specificColleges: specificColleges.length > 0 ? specificColleges : undefined,
+      },
     };
 
     try {
@@ -256,6 +274,83 @@ function PostJobForm({
             </li>
           ))}
         </ul>
+      </div>
+
+      {/* Candidate Filters Section */}
+      <div className="border-t border-border pt-6 space-y-4">
+        <h3 className="text-lg font-semibold">Candidate Filters</h3>
+        <p className="text-sm text-muted-foreground">
+          Set requirements to filter candidates automatically
+        </p>
+
+        {/* College Verification Required */}
+        <div className="flex items-center space-x-3">
+          <input
+            type="checkbox"
+            id="requireCollegeVerification"
+            name="requireCollegeVerification"
+            className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+          />
+          <label htmlFor="requireCollegeVerification" className="text-sm font-medium cursor-pointer">
+            Require College Verification
+          </label>
+        </div>
+
+        {/* Minimum CGPA */}
+        <div>
+          <label className="block text-sm font-semibold mb-2">
+            Minimum CGPA (Optional)
+          </label>
+          <input
+            type="number"
+            name="minCGPA"
+            step="0.1"
+            min="0"
+            max="10"
+            className="input-modern w-full max-w-xs"
+            placeholder="e.g., 7.0"
+          />
+          <p className="text-xs text-muted-foreground mt-1">
+            Only students with this CGPA or higher can apply
+          </p>
+        </div>
+
+        {/* Specific Colleges */}
+        <div>
+          <label className="block text-sm font-semibold mb-2">
+            Specific Colleges (Optional)
+          </label>
+          <div className="flex space-x-2 mb-3">
+            <input
+              type="text"
+              value={currentCollege}
+              onChange={(e) => setCurrentCollege(e.target.value)}
+              onKeyPress={(e) => e.key === "Enter" && (e.preventDefault(), addCollege())}
+              className="input-modern flex-1"
+              placeholder="e.g., MIT, Stanford"
+            />
+            <Button type="button" onClick={addCollege} variant="secondary">
+              Add
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground mb-2">
+            Leave empty to allow all colleges
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {specificColleges.map((college) => (
+              <Badge key={college} variant="secondary" className="pl-3 pr-1 py-1">
+                {college}
+                <button
+                  type="button"
+                  onClick={() => removeCollege(college)}
+                  className="ml-2 hover:text-destructive"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </Badge>
+            ))}
+          </div>
+        </div>
       </div>
 
       {/* Submit Button */}

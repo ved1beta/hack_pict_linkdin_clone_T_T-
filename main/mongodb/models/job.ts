@@ -11,6 +11,7 @@ export interface IJobApplication {
   aiScore?: number; // AI matching score
   collegeVerified?: boolean; // Whether the applicant is college verified
   collegeName?: string; // College name if verified
+  cgpa?: number; // Student's CGPA
 }
 
 export interface IJob {
@@ -30,6 +31,12 @@ export interface IJob {
   applications: IJobApplication[];
   status: "open" | "closed";
   postedAt: Date;
+  // Recruiter Filters
+  filters?: {
+    requireCollegeVerification?: boolean;
+    minCGPA?: number;
+    specificColleges?: string[]; // List of allowed colleges
+  };
 }
 
 export interface IJobDocument extends IJob, Document {
@@ -52,6 +59,7 @@ const JobApplicationSchema = new Schema({
   aiScore: Number,
   collegeVerified: { type: Boolean, default: false },
   collegeName: String,
+  cgpa: Number,
 });
 
 const JobSchema = new Schema<IJobDocument>(
@@ -84,6 +92,12 @@ const JobSchema = new Schema<IJobDocument>(
       default: "open",
     },
     postedAt: { type: Date, default: Date.now },
+    // Recruiter Filters
+    filters: {
+      requireCollegeVerification: { type: Boolean, default: false },
+      minCGPA: { type: Number, min: 0, max: 10 },
+      specificColleges: [String],
+    },
   },
   {
     timestamps: true,

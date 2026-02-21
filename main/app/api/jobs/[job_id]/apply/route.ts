@@ -54,6 +54,41 @@ export async function POST(
       );
     }
 
+    // Check job filters
+    if (job.filters) {
+      // Check college verification requirement
+      if (job.filters.requireCollegeVerification) {
+        if (!dbUser.collegeVerification || dbUser.collegeVerification.status !== "approved") {
+          return NextResponse.json(
+            { error: "This job requires college verification. Please verify your college in settings." },
+            { status: 403 }
+          );
+        }
+      }
+
+      // Check minimum CGPA requirement
+      if (job.filters.minCGPA) {
+        const userCGPA = dbUser.collegeVerification?.cgpa;
+        if (!userCGPA || userCGPA < job.filters.minCGPA) {
+          return NextResponse.json(
+            { error: `This job requires a minimum CGPA of ${job.filters.minCGPA}. Your CGPA: ${userCGPA || "Not provided"}` },
+            { status: 403 }
+          );
+        }
+      }
+
+      // Check specific colleges requirement
+      if (job.filters.specificColleges && job.filters.specificColleges.length > 0) {
+        const userCollege = dbUser.collegeVerification?.collegeName;
+        if (!userCollege || !job.filters.specificColleges.includes(userCollege)) {
+          return NextResponse.json(
+            { error: `This job is only open to students from: ${job.filters.specificColleges.join(", ")}` },
+            { status: 403 }
+          );
+        }
+      }
+    }
+
     // Check for existing ATS score
     let aiScore: number | undefined;
     const existingAnalysis = await ResumeAnalysis.findOne({
@@ -77,6 +112,7 @@ export async function POST(
       aiScore, // Include score if available
       collegeVerified: dbUser.collegeVerification?.status === "approved",
       collegeName: dbUser.collegeVerification?.status === "approved" ? dbUser.collegeVerification.collegeName : undefined,
+      cgpa: dbUser.collegeVerification?.cgpa,
     };
 
     job.applications.push(application);

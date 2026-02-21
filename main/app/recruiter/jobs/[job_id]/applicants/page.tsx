@@ -4,7 +4,7 @@ import connectDB from "@/mongodb/db";
 import { User } from "@/mongodb/models/user";
 import { Job } from "@/mongodb/models/job";
 import { Project } from "@/mongodb/models/project";
-import ApplicantCard from "@/components/ApplicantCard";
+import ApplicantsList from "@/components/ApplicantsList";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Users, Briefcase } from "lucide-react";
 import Link from "next/link";
@@ -139,21 +139,13 @@ async function JobApplicantsPage({ params }: JobApplicantsPageProps) {
           </div>
         </div>
 
-        {/* Applicants List */}
+        {/* Applicants List with Filters */}
         {applicants.length > 0 ? (
-          <div className="space-y-4">
-            {applicants.map((applicant: any) => (
-              <ApplicantCard
-                key={applicant._id?.toString() || applicant.userId}
-                applicant={{
-                  ...applicant,
-                  _id: applicant._id?.toString() || applicant.userId,
-                }}
-                jobId={job._id.toString()}
-                companyName={job.companyName}
-              />
-            ))}
-          </div>
+          <ApplicantsList
+            applicants={applicants}
+            jobId={job._id.toString()}
+            companyName={job.companyName}
+          />
         ) : (
           <div className="card-modern p-12 text-center">
             <Users className="h-16 w-16 mx-auto text-muted-foreground mb-4" />

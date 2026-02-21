@@ -21,6 +21,7 @@ interface CollegeVerificationData {
   studentId: string;
   department?: string;
   graduationYear?: number;
+  cgpa?: number;
   status: "pending" | "approved" | "rejected";
   submittedAt?: string;
   rejectionReason?: string;
@@ -36,6 +37,7 @@ export default function CollegeVerificationForm() {
     studentId: "",
     department: "",
     graduationYear: new Date().getFullYear(),
+    cgpa: 0,
   });
 
   useEffect(() => {
@@ -55,6 +57,7 @@ export default function CollegeVerificationForm() {
             studentId: data.collegeVerification.studentId || "",
             department: data.collegeVerification.department || "",
             graduationYear: data.collegeVerification.graduationYear || new Date().getFullYear(),
+            cgpa: data.collegeVerification.cgpa || 0,
           });
         }
       }
@@ -69,7 +72,8 @@ export default function CollegeVerificationForm() {
     const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
-      [name]: name === "graduationYear" ? parseInt(value) || new Date().getFullYear() : value,
+      [name]: name === "graduationYear" ? parseInt(value) || new Date().getFullYear() : 
+              name === "cgpa" ? parseFloat(value) || 0 : value,
     }));
   };
 
@@ -281,6 +285,25 @@ export default function CollegeVerificationForm() {
                   max={new Date().getFullYear() + 10}
                   disabled={loading}
                 />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="cgpa">CGPA / GPA (out of 10)</Label>
+                <Input
+                  id="cgpa"
+                  name="cgpa"
+                  type="number"
+                  step="0.01"
+                  value={formData.cgpa}
+                  onChange={handleChange}
+                  placeholder="e.g., 8.5"
+                  min={0}
+                  max={10}
+                  disabled={loading}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Enter your current CGPA (helpful for job applications)
+                </p>
               </div>
             </div>
 

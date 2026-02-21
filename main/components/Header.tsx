@@ -1,4 +1,5 @@
 import { SignInButton, SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
+import { currentUser } from "@clerk/nextjs/server";
 import {
   Briefcase,
   HomeIcon,
@@ -14,8 +15,19 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "./ui/button";
+import connectDB from "@/mongodb/db";
+import { User } from "@/mongodb/models/user";
 
 async function Header() {
+  const clerkUser = await currentUser();
+  let userType: "student" | "recruiter" | null = null;
+
+  if (clerkUser) {
+    await connectDB();
+    const dbUser = await User.findOne({ userId: clerkUser.id }).lean();
+    userType = dbUser?.userType || null;
+  }
+
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/50 bg-background/80 backdrop-blur-xl">
       <div className="flex items-center justify-between h-14 max-w-7xl mx-auto px-4">
@@ -58,34 +70,59 @@ async function Header() {
             label="Jobs" 
             className="hidden lg:flex"
           />
-          <NavLink 
-            href="/swipe" 
-            icon={<Flame className="h-5 w-5" />} 
-            label="Swipe" 
-            badge="Hot"
-          />
+          
+          {/* Student-only features */}
+          {userType === "student" && (
+            <>
+              <NavLink 
+                href="/swipe" 
+                icon={<Flame className="h-5 w-5" />} 
+                label="Swipe" 
+                badge="Hot"
+              />
+              <NavLink 
+                href="/mentorship" 
+                icon={<GraduationCap className="h-5 w-5" />} 
+                label="Mentor" 
+                className="hidden lg:flex"
+              />
+              <NavLink 
+                href="/projects" 
+                icon={<FolderGit2 className="h-5 w-5" />} 
+                label="Projects" 
+                className="hidden md:flex"
+              />
+              <NavLink 
+                href="/analytics" 
+                icon={<BarChart3 className="h-5 w-5" />} 
+                label="Insights"
+                className="hidden md:flex"
+              />
+            </>
+          )}
+
+          {/* Recruiter-only features */}
+          {userType === "recruiter" && (
+            <>
+              <NavLink 
+                href="/recruiter" 
+                icon={<BarChart3 className="h-5 w-5" />} 
+                label="Dashboard" 
+                className="hidden md:flex"
+              />
+              <NavLink 
+                href="/recruiter/post-job" 
+                icon={<Briefcase className="h-5 w-5" />} 
+                label="Post Job" 
+                className="hidden lg:flex"
+              />
+            </>
+          )}
+
           <NavLink 
             href="/messages" 
             icon={<MessagesSquare className="h-5 w-5" />} 
             label="Chat"
-            className="hidden md:flex"
-          />
-          <NavLink 
-            href="/mentorship" 
-            icon={<GraduationCap className="h-5 w-5" />} 
-            label="Mentor" 
-            className="hidden lg:flex"
-          />
-          <NavLink 
-            href="/projects" 
-            icon={<FolderGit2 className="h-5 w-5" />} 
-            label="Projects" 
-            className="hidden md:flex"
-          />
-          <NavLink 
-            href="/analytics" 
-            icon={<BarChart3 className="h-5 w-5" />} 
-            label="Insights"
             className="hidden md:flex"
           />
           <NavLink 
