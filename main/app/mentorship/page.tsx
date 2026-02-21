@@ -256,52 +256,57 @@ export default function MentorshipPage() {
             </div>
           ) : roadmap ? (
             <div className="space-y-4">
-              <div className="flex flex-wrap items-center gap-3">
+              <div className="flex flex-col gap-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="space-y-1">
+                    <h3 className="text-2xl font-bold flex items-center gap-2">
+                      <Map className="h-6 w-6 text-primary" />
+                      {roadmap.displayName}
+                    </h3>
+                    {roadmap.basedOnSkills.length > 0 && (
+                      <p className="text-sm text-muted-foreground">
+                        Recommended based on: {roadmap.basedOnSkills.slice(0, 3).join(", ")}
+                        {roadmap.basedOnSkills.length > 3 ? "..." : ""}
+                      </p>
+                    )}
+                  </div>
+                  <a
+                    href={roadmap.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn-primary"
+                  >
+                    View Interactive Roadmap <ExternalLink className="ml-2 h-4 w-4" />
+                  </a>
+                </div>
+
+                {/* Decorative Roadmap Card */}
                 <a
                   href={roadmap.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 btn-primary"
+                  className="group relative block w-full aspect-[3/1] rounded-xl overflow-hidden border border-border bg-gradient-to-br from-slate-900 to-slate-800"
                 >
-                  <Map className="h-4 w-4" />
-                  {roadmap.displayName} Roadmap
-                  <ExternalLink className="h-4 w-4" />
-                </a>
-                {roadmap.basedOnSkills.length > 0 && (
-                  <span className="text-sm text-muted-foreground">
-                    Based on: {roadmap.basedOnSkills.slice(0, 5).join(", ")}
-                  </span>
-                )}
-              </div>
-              
-              <div className="rounded-xl overflow-hidden border border-border bg-card hover:border-primary/50 transition-all group">
-                <a
-                  href={roadmap.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="block relative"
-                >
-                  {/* Using the wide card image from roadmap.sh */}
-                  <img 
-                    src={`https://roadmap.sh/card/wide/${roadmap.url.split('/').pop()}.png`}
-                    alt={`${roadmap.displayName} Roadmap`}
-                    className="w-full h-auto object-cover group-hover:opacity-90 transition-opacity"
-                    onError={(e) => {
-                      // Fallback if image fails
-                      (e.target as HTMLImageElement).style.display = 'none';
-                    }}
-                  />
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/20 transition-colors">
-                    <span className="opacity-0 group-hover:opacity-100 bg-white/90 text-black font-semibold px-4 py-2 rounded-full shadow-lg transform translate-y-2 group-hover:translate-y-0 transition-all">
-                      Click to Explore Interactive Roadmap
-                    </span>
+                  {/* Abstract Map Lines Background */}
+                  <svg className="absolute inset-0 w-full h-full opacity-20 group-hover:opacity-30 transition-opacity" xmlns="http://www.w3.org/2000/svg">
+                    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+                      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="currentColor" strokeWidth="1" className="text-primary"/>
+                    </pattern>
+                    <rect width="100%" height="100%" fill="url(#grid)" />
+                    <path d="M0 100 Q 250 50 500 100 T 1000 100" stroke="currentColor" strokeWidth="2" fill="none" className="text-primary/50" />
+                  </svg>
+                  
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="text-center space-y-2 p-4 bg-background/10 backdrop-blur-sm rounded-xl border border-white/10 group-hover:scale-105 transition-transform">
+                      <Map className="h-12 w-12 mx-auto text-primary mb-2" />
+                      <h4 className="text-xl font-bold text-white">Open {roadmap.displayName} Roadmap</h4>
+                      <span className="inline-block text-xs text-white/70 bg-black/50 px-3 py-1 rounded-full">
+                        Interactive Step-by-Step Guide
+                      </span>
+                    </div>
                   </div>
                 </a>
               </div>
-              
-              <p className="text-xs text-muted-foreground text-center">
-                Powered by <a href="https://roadmap.sh" target="_blank" className="underline hover:text-primary">roadmap.sh</a>
-              </p>
             </div>
           ) : (
             <p className="text-muted-foreground py-4">

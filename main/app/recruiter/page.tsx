@@ -15,6 +15,8 @@ import {
 } from "lucide-react";
 import RecruiterJobCard from "@/components/RecruiterJobCard";
 
+import RecruiterAnalytics from "@/components/RecruiterAnalytics"; // Import Analytics
+
 async function RecruiterDashboard() {
   const clerkUser = await currentUser();
   
@@ -37,12 +39,92 @@ async function RecruiterDashboard() {
   // Calculate stats
   const totalJobs = jobs.length;
   const openJobs = jobs.filter((job: any) => job.status === "open").length;
-  const totalApplications = jobs.reduce((sum: number, job: any) => 
-    sum + (job.applications?.length || 0), 0
-  );
-  const pendingApplications = jobs.reduce((sum: number, job: any) => 
-    sum + (job.applications?.filter((app: any) => app.status === "pending").length || 0), 0
-  );
+  
+  // Aggregate Applications Data
+  let totalApplications = 0;
+  let pendingApplications = 0;
+  let totalScore = 0;
+  let scoreCount = 0;
+  
+  const statusCounts: Record<string, number> = {
+    pending: 0,
+    reviewed: 0,
+    accepted: 0,
+    rejected: 0
+  };
+
+  const scoreBuckets: Record<string, number> = {
+    "0-20": 0, "21-40": 0, "41-60": 0, "61-80": 0, "81-100": 0
+  };
+
+  const appsByDate: Record<string, number> = {};
+  const today = new Date();
+  const thirtyDaysAgo = new Date(today);
+  thirtyDaysAgo.setDate(today.getDate() - 30);
+
+  // Initialize last 30 days with 0
+  for (let d = new Date(thirtyDaysAgo); d <= today; d.setDate(d.getDate() + 1)) {
+    const dateStr = d.toISOString().split('T')[0];
+    appsByDate[dateStr] = 0;
+  }
+
+  jobs.forEach((job: any) => {
+    if (job.applications) {
+      job.applications.forEach((app: any) => {
+        totalApplications++;
+        
+        // Status
+        if (app.status === "pending") pendingApplications++;
+        if (statusCounts[app.status] !== undefined) {
+          statusCounts[app.status]++;
+        }
+
+        // AI Score
+        if (typeof app.aiScore === 'number') {
+          totalScore += app.aiScore;
+          scoreCount++;
+          
+          if (app.aiScore <= 20) scoreBuckets["0-20"]++;
+          else if (app.aiScore <= 40) scoreBuckets["21-40"]++;
+          else if (app.aiScore <= 60) scoreBuckets["41-60"]++;
+          else if (app.aiScore <= 80) scoreBuckets["61-80"]++;
+          else scoreBuckets["81-100"]++;
+        }
+
+        // Applications Over Time
+        if (app.appliedAt) {
+          const appDate = new Date(app.appliedAt);
+          if (appDate >= thirtyDaysAgo) {
+            const dateStr = appDate.toISOString().split('T')[0];
+            if (appsByDate[dateStr] !== undefined) {
+              appsByDate[dateStr]++;
+            }
+          }
+        }
+      });
+    }
+  });
+
+  const averageScore = scoreCount > 0 ? Math.round(totalScore / scoreCount) : 0;
+
+  const statusDistribution = [
+    { name: "Pending", value: statusCounts.pending, color: "#64748b" }, // slate-500
+    { name: "Reviewed", value: statusCounts.reviewed, color: "#3b82f6" }, // blue-500
+    { name: "Accepted", value: statusCounts.accepted, color: "#22c55e" }, // green-500
+    { name: "Rejected", value: statusCounts.rejected, color: "#ef4444" }, // red-500
+  ].filter(item => item.value > 0);
+
+  const scoreDistribution = Object.entries(scoreBuckets).map(([range, count]) => ({
+    range,
+    count
+  }));
+
+  const applicationsOverTime = Object.entries(appsByDate)
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .map(([date, count]) => ({
+      date: new Date(date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
+      count
+    }));
 
   return (
     <div className="bg-background min-h-screen py-6">
@@ -94,6 +176,20 @@ async function RecruiterDashboard() {
             iconColor="text-orange-500"
           />
         </div>
+
+        {/* Analytics Section */}
+        {totalApplications > 0 && (
+          <div className="space-y-4">
+            <h2 className="text-2xl font-bold">Applicant Insights</h2>
+            <RecruiterAnalytics 
+              totalApplications={totalApplications}
+              averageScore={averageScore}
+              statusDistribution={statusDistribution}
+              scoreDistribution={scoreDistribution}
+              applicationsOverTime={applicationsOverTime}
+            />
+          </div>
+        )}
 
         {/* Posted Jobs */}
         <div className="space-y-4">

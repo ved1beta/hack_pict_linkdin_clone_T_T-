@@ -91,7 +91,7 @@ Set jobMatchScore, matchedSkills, missingSkills to empty arrays if not applicabl
     if (!kimiKey) throw new Error("No Kimi key");
     const openai = new OpenAI({
       apiKey: kimiKey,
-      baseURL: process.env.KIMI_BASE_URL || "https://integrate.api.nvidia.com/v1",
+      baseURL: "https://integrate.api.nvidia.com/v1",
     });
     const response = await openai.chat.completions.create({
       model: process.env.KIMI_MODEL || "moonshotai/kimi-k2.5",
@@ -154,15 +154,18 @@ Set jobMatchScore, matchedSkills, missingSkills to empty arrays if not applicabl
   await ResumeAnalysis.create(analysis);
 
   if (jobId) {
-    const job = await Job.findById(jobId);
-    if (job) {
-      const appIndex = job.applications.findIndex((a: any) => a.userId === userId);
-      if (appIndex >= 0) {
-        job.applications[appIndex].aiScore =
-          analysis.jobMatchScore ?? analysis.overallScore;
-        await job.save();
+    const score = analysis.jobMatchScore ?? analysis.overallScore;
+    
+    // Use updateOne with array filter to ensure atomic update
+    await Job.updateOne(
+      { _id: jobId, "applications.userId": userId },
+      { 
+        $set: { 
+          "applications.$.aiScore": score 
+        } 
       }
-    }
+    );
+    console.log(`[ATS] Updated job ${jobId} application score for ${userId} to ${score}`);
   }
 
   return analysis;
