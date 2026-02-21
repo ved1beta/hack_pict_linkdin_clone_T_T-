@@ -180,19 +180,18 @@ Rules:
     const kimiKey = process.env.KIMI_K2_API_KEY;
     const geminiKey = process.env.GEMINI_API_KEY;
 
-    let resumeText = "";
-
-    // Use Gemini first (faster) then fall back to Kimi
-    if (geminiKey) {
-      const genAI = new GoogleGenerativeAI(geminiKey);
+    const callGemini = async (): Promise<string> => {
+      const genAI = new GoogleGenerativeAI(geminiKey!);
       const model = genAI.getGenerativeModel({
         model: process.env.GEMINI_MODEL || "gemini-2.0-flash",
       });
       const result = await model.generateContent(prompt);
-      resumeText = result.response.text().trim();
-    } else if (kimiKey) {
+      return result.response.text().trim();
+    };
+
+    const callKimi = async (): Promise<string> => {
       const openai = new OpenAI({
-        apiKey: kimiKey,
+        apiKey: kimiKey!,
         baseURL: process.env.KIMI_BASE_URL || "https://integrate.api.nvidia.com/v1",
       });
       const response = await openai.chat.completions.create({
@@ -204,7 +203,21 @@ Rules:
         temperature: 0.3,
         max_tokens: 1500,
       });
-      resumeText = response.choices[0]?.message?.content?.trim() || "";
+      return response.choices[0]?.message?.content?.trim() || "";
+    };
+
+    let resumeText = "";
+    if (geminiKey && kimiKey) {
+      try {
+        resumeText = await callGemini();
+      } catch (e) {
+        console.warn("[Resume] Gemini failed, falling back to Kimi:", (e as Error).message?.slice(0, 100));
+        resumeText = await callKimi();
+      }
+    } else if (geminiKey) {
+      resumeText = await callGemini();
+    } else if (kimiKey) {
+      resumeText = await callKimi();
     } else {
       return NextResponse.json({ error: "AI provider not configured" }, { status: 500 });
     }

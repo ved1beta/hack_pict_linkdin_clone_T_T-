@@ -60,23 +60,26 @@ export async function POST() {
     const dbUser = await User.findOne({ userId: user.id }).lean();
     const githubUsername = (dbUser as any)?.githubUsername;
 
-    const repoInfos: { repoName: string; languages: string[]; description?: string; myCommits?: string[] }[] = [];
-    for (const r of repos as any[]) {
-      const info = await fetchRepoInfo(r.owner, r.repoName);
-      let myCommits: string[] = [];
-      if (githubUsername) {
-        const commits = await fetchUserCommits(r.owner, r.repoName, githubUsername, 10);
-        myCommits = commits.map((c) => c.message.split("\n")[0]);
-      }
-      if (info) {
-        repoInfos.push({
+    const settled = await Promise.allSettled(
+      (repos as any[]).map(async (r) => {
+        const [info, commits] = await Promise.all([
+          fetchRepoInfo(r.owner, r.repoName),
+          githubUsername
+            ? fetchUserCommits(r.owner, r.repoName, githubUsername, 10)
+            : Promise.resolve([]),
+        ]);
+        if (!info) return null;
+        return {
           repoName: r.repoName,
           languages: info.languages,
           description: info.description,
-          myCommits,
-        });
-      }
-    }
+          myCommits: commits.map((c) => c.message.split("\n")[0]),
+        };
+      })
+    );
+    const repoInfos = settled
+      .filter((r): r is PromiseFulfilledResult<any> => r.status === "fulfilled" && r.value !== null)
+      .map((r) => r.value);
 
     const summary = repoInfos
       .map(
@@ -111,10 +114,18 @@ Analyze the portfolio and respond with ONLY a valid JSON object (no markdown, no
 
 Be constructive. Consider: tech stack diversity, project complexity, documentation, language usage.`;
 
-    let text: string;
-    if (kimiKey) {
+    const callGemini = async (): Promise<string> => {
+      const genAI = new GoogleGenerativeAI(geminiKey!);
+      const model = genAI.getGenerativeModel({
+        model: process.env.GEMINI_MODEL || "gemini-2.0-flash",
+      });
+      const result = await model.generateContent(prompt);
+      return result.response.text();
+    };
+
+    const callKimi = async (): Promise<string> => {
       const openai = new OpenAI({
-        apiKey: kimiKey,
+        apiKey: kimiKey!,
         baseURL: process.env.KIMI_BASE_URL || "https://integrate.api.nvidia.com/v1",
       });
       const response = await openai.chat.completions.create({
@@ -122,14 +133,21 @@ Be constructive. Consider: tech stack diversity, project complexity, documentati
         messages: [{ role: "user", content: prompt }],
         temperature: 0.2,
       });
-      text = response.choices[0]?.message?.content?.trim() ?? "";
+      return response.choices[0]?.message?.content?.trim() ?? "";
+    };
+
+    let text: string;
+    if (geminiKey && kimiKey) {
+      try {
+        text = await callGemini();
+      } catch (e) {
+        console.warn("[Git] Gemini failed, falling back to Kimi:", (e as Error).message?.slice(0, 100));
+        text = await callKimi();
+      }
+    } else if (geminiKey) {
+      text = await callGemini();
     } else {
-      const genAI = new GoogleGenerativeAI(geminiKey!);
-      const model = genAI.getGenerativeModel({
-        model: process.env.GEMINI_MODEL || "gemini-2.0-flash",
-      });
-      const result = await model.generateContent(prompt);
-      text = result.response.text();
+      text = await callKimi();
     }
 
     const jsonMatch = text.replace(/```json\n?|\n?```/g, "").trim();

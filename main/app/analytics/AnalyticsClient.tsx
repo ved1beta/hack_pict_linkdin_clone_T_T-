@@ -270,10 +270,10 @@ export default function AnalyticsClient({ data }: AnalyticsClientProps) {
           {analyzingGit && gitStatus && (
             <p className="text-xs text-muted-foreground animate-pulse">{gitStatus}</p>
           )}
-          {!analyzing && analyzeStatus && analyzeStatus.includes("failed") && (
+          {!analyzing && analyzeStatus && !analyzeStatus.startsWith("Done") && (
             <p className="text-xs text-destructive">{analyzeStatus}</p>
           )}
-          {!analyzingGit && gitStatus && gitStatus.includes("failed") && (
+          {!analyzingGit && gitStatus && !gitStatus.startsWith("Done") && (
             <p className="text-xs text-destructive">{gitStatus}</p>
           )}
         </div>

@@ -43,15 +43,19 @@ async function buildResumeText(user: any, userId: string): Promise<string> {
     parts.push(user.linkedInText.trim());
   }
 
-  // GitHub repos summary
   if (user.githubUsername) {
     try {
       const repos = await GitRepo.find({ userId }).lean();
       if (repos.length > 0) {
         parts.push("\n--- GitHub Projects ---");
-        for (const r of repos as any[]) {
-          const langs = await fetchRepoLanguages(r.owner, r.repoName);
-          parts.push(`${r.repoName}: ${langs.join(", ") || "N/A"}`);
+        const results = await Promise.allSettled(
+          (repos as any[]).map(async (r) => {
+            const langs = await fetchRepoLanguages(r.owner, r.repoName);
+            return `${r.repoName}: ${langs.join(", ") || "N/A"}`;
+          })
+        );
+        for (const r of results) {
+          if (r.status === "fulfilled") parts.push(r.value);
         }
       }
     } catch {
@@ -155,9 +159,16 @@ Set jobMatchScore, matchedSkills, missingSkills to empty arrays if not applicabl
     return result.response.text();
   };
 
-  // Prefer Gemini (faster) then Kimi as fallback
+  // Try Gemini first (faster), fall back to Kimi on failure (rate limit etc)
   let text: string;
-  if (geminiKey) {
+  if (geminiKey && kimiKey) {
+    try {
+      text = await callGemini();
+    } catch (e) {
+      console.warn("[ATS] Gemini failed, falling back to Kimi:", (e as Error).message?.slice(0, 100));
+      text = await callKimi();
+    }
+  } else if (geminiKey) {
     text = await callGemini();
   } else if (kimiKey) {
     text = await callKimi();

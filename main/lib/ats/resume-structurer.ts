@@ -80,10 +80,19 @@ export async function structureResumeFromGitHub(
   const kimiKey = process.env.KIMI_K2_API_KEY;
   const openaiKey = process.env.OPENAI_API_KEY;
   const geminiKey = process.env.GEMINI_API_KEY;
-  if (kimiKey) return structureFromGitHubWithAI(profileText, structureWithCustomPrompt, kimiKey);
-  if (openaiKey) return structureFromGitHubWithAI(profileText, structureWithCustomPromptOpenAI, openaiKey);
-  if (geminiKey) return structureFromGitHubWithAI(profileText, structureWithCustomPromptGemini, geminiKey);
-  throw new Error("Set KIMI_K2_API_KEY, OPENAI_API_KEY, or GEMINI_API_KEY in .env.local");
+
+  const providers: Array<() => Promise<StructuredResume>> = [];
+  if (geminiKey) providers.push(() => structureFromGitHubWithAI(profileText, structureWithCustomPromptGemini, geminiKey));
+  if (kimiKey) providers.push(() => structureFromGitHubWithAI(profileText, structureWithCustomPrompt, kimiKey));
+  if (openaiKey) providers.push(() => structureFromGitHubWithAI(profileText, structureWithCustomPromptOpenAI, openaiKey));
+
+  if (providers.length === 0) throw new Error("Set KIMI_K2_API_KEY, OPENAI_API_KEY, or GEMINI_API_KEY in .env.local");
+
+  let lastErr: Error | null = null;
+  for (const call of providers) {
+    try { return await call(); } catch (e) { lastErr = e as Error; console.warn("[structureResumeFromGitHub] provider failed, trying next:", (e as Error).message?.slice(0, 80)); }
+  }
+  throw lastErr!;
 }
 
 async function structureWithCustomPrompt(
@@ -150,11 +159,18 @@ export async function structureResumeWithAI(
   const openaiKey = process.env.OPENAI_API_KEY;
   const geminiKey = process.env.GEMINI_API_KEY;
 
-  if (kimiKey) return structureWithKimi(rawText, kimiKey);
-  if (openaiKey) return structureWithOpenAI(rawText, openaiKey);
-  if (geminiKey) return structureWithGemini(rawText, geminiKey);
+  const providers: Array<() => Promise<StructuredResume>> = [];
+  if (geminiKey) providers.push(() => structureWithGemini(rawText, geminiKey));
+  if (kimiKey) providers.push(() => structureWithKimi(rawText, kimiKey));
+  if (openaiKey) providers.push(() => structureWithOpenAI(rawText, openaiKey));
 
-  throw new Error("Set KIMI_K2_API_KEY, OPENAI_API_KEY, or GEMINI_API_KEY in .env.local");
+  if (providers.length === 0) throw new Error("Set KIMI_K2_API_KEY, OPENAI_API_KEY, or GEMINI_API_KEY in .env.local");
+
+  let lastErr: Error | null = null;
+  for (const call of providers) {
+    try { return await call(); } catch (e) { lastErr = e as Error; console.warn("[structureResumeWithAI] provider failed, trying next:", (e as Error).message?.slice(0, 80)); }
+  }
+  throw lastErr!;
 }
 
 async function structureWithKimi(
