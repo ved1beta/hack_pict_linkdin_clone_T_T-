@@ -44,7 +44,7 @@ interface AnalyticsClientProps {
       avgResumeScore: number;
       avgJobMatch: number;
     };
-    user: { firstName: string; lastName: string; skills: string[] };
+    user: { firstName: string; lastName: string; skills: string[]; githubUsername?: string };
     git?: {
       repos: { id: string; url: string; repoName: string; owner: string }[];
       latestAnalysis: {
@@ -288,7 +288,7 @@ export default function AnalyticsClient({ data }: AnalyticsClientProps) {
       />
 
       {/* GitHub Contribution Graph */}
-      <GitHubContribGraph initialUsername={gitRepos.length > 0 ? gitRepos[0].owner : ""} />
+      <GitHubContribGraph initialUsername={user.githubUsername || (gitRepos.length > 0 ? gitRepos[0].owner : "")} />
 
       {/* Tabs */}
       <div className="flex gap-2 border-b border-border pb-2">

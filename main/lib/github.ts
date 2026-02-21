@@ -26,7 +26,7 @@ export interface PinnedRepo {
  * Fetch user's pinned repositories via GraphQL (requires GITHUB_TOKEN for GraphQL)
  * Fallback: fetch top repos by stars/updated if no token
  */
-export async function fetchPinnedRepos(username: string): Promise<PinnedRepo[]> {
+export async function fetchPinnedRepos(username: string, limit = 3): Promise<PinnedRepo[]> {
   if (process.env.GITHUB_TOKEN) {
     const query = `
       query($login: String!) {
@@ -54,7 +54,7 @@ export async function fetchPinnedRepos(username: string): Promise<PinnedRepo[]> 
     if (res.ok) {
       const data = await res.json();
       const nodes = data?.data?.user?.pinnedItems?.nodes || [];
-      return nodes.map((n: any) => {
+      return nodes.slice(0, limit).map((n: any) => {
         const [owner, repo] = (n.nameWithOwner || `${username}/${n.name}`).split("/");
         return {
           owner: owner || username,
@@ -66,14 +66,14 @@ export async function fetchPinnedRepos(username: string): Promise<PinnedRepo[]> 
     }
   }
 
-  // Fallback: fetch user's repos sorted by stars (top 6)
+  // Fallback: fetch user's repos sorted by stars
   const res = await fetch(
-    `${GITHUB_API}/users/${encodeURIComponent(username)}/repos?sort=stars&per_page=6`,
+    `${GITHUB_API}/users/${encodeURIComponent(username)}/repos?sort=stars&per_page=${limit}`,
     { headers: headers() }
   );
   if (!res.ok) return [];
   const repos = await res.json();
-  return repos.map((r: any) => ({
+  return repos.slice(0, limit).map((r: any) => ({
     owner: r.owner?.login || username,
     repo: r.name,
     name: r.name,
