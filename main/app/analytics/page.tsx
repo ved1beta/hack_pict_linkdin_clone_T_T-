@@ -174,8 +174,13 @@ async function AnalyticsPage() {
   const latestGitAnalysis = (gitAnalyses as any[])?.[0] || null;
 
   const serialized = {
-    analyses: JSON.parse(JSON.stringify(analyses)),
-    applicationsWithScores,
+    analyses: analyses.map((a: any) => ({
+      ...a,
+      _id: a._id.toString(),
+      userId: a.userId.toString(),
+      analyzedAt: a.analyzedAt ? new Date(a.analyzedAt).toISOString() : null,
+    })),
+    applicationsWithScores: JSON.parse(JSON.stringify(applicationsWithScores)),
     latestGeneral: (latestGeneral || latestFromUpload)
       ? JSON.parse(JSON.stringify(latestGeneral || latestFromUpload))
       : null,
@@ -197,15 +202,23 @@ async function AnalyticsPage() {
         url: r.url,
         repoName: r.repoName,
         owner: r.owner,
+        // Ensure no other complex fields are passed
       })),
       latestAnalysis: latestGitAnalysis
         ? {
+            id: latestGitAnalysis._id.toString(),
             score: latestGitAnalysis.score,
             strengths: latestGitAnalysis.strengths || [],
             improvements: latestGitAnalysis.improvements || [],
             recommendation: latestGitAnalysis.recommendation || "",
-            repoSummary: latestGitAnalysis.repoSummary || [],
-            analyzedAt: latestGitAnalysis.analyzedAt || latestGitAnalysis.createdAt,
+            repoSummary: (latestGitAnalysis.repoSummary || []).map((s: any) => ({
+              repoName: s.repoName,
+              languages: s.languages,
+              description: s.description,
+            })),
+            analyzedAt: latestGitAnalysis.analyzedAt
+              ? new Date(latestGitAnalysis.analyzedAt).toISOString()
+              : new Date(latestGitAnalysis.createdAt).toISOString(),
           }
         : null,
     },

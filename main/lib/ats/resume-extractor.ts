@@ -35,7 +35,10 @@ export async function extractResumeText(
   buffer: Buffer,
   mimeType: string
 ): Promise<string> {
+  console.log(`[ResumeExtractor] Starting extraction for MIME: ${mimeType}, Size: ${buffer.length} bytes`);
+
   if (!isAllowedMimeType(mimeType)) {
+    console.error(`[ResumeExtractor] Unsupported MIME: ${mimeType}`);
     throw new Error(`Unsupported file type: ${mimeType}`);
   }
 
@@ -43,24 +46,34 @@ export async function extractResumeText(
     let text: string;
 
     if (mimeType === "application/pdf") {
+      console.log("[ResumeExtractor] Using pdf-parse...");
       // pdf-parse v1 is CJS; default export is the parse function
-      const pdfParse = (await import("pdf-parse")).default;
+      const pdfParseModule = await import("pdf-parse");
+      // Handle potential ESM/CJS interop issues with pdf-parse
+      const pdfParse = pdfParseModule.default || pdfParseModule;
+      
       const result = await pdfParse(buffer);
       text = result?.text ?? "";
+      console.log(`[ResumeExtractor] PDF parsed. Text length: ${text.length}`);
     } else if (
       mimeType ===
         "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
       mimeType === "application/msword"
     ) {
+      console.log("[ResumeExtractor] Using mammoth for DOCX...");
       const result = await mammoth.extractRawText({ buffer });
       text = result.value || "";
+      console.log(`[ResumeExtractor] DOCX parsed. Text length: ${text.length}`);
     } else {
       throw new Error(`Unsupported mime type: ${mimeType}`);
     }
 
-    return cleanText(text);
+    const cleaned = cleanText(text);
+    console.log(`[ResumeExtractor] Text cleaned. Final length: ${cleaned.length}`);
+    return cleaned;
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Unknown error";
+    console.error(`[ResumeExtractor] Error:`, err);
     throw new Error(`Failed to extract text from resume: ${msg}`);
   }
 }

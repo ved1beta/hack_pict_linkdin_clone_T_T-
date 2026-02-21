@@ -4,25 +4,37 @@
 
 @layer base {
   :root {
-    --background: 210 15% 8%;
-    --foreground: 210 15% 95%;
-    --card: 210 15% 11%;
-    --card-foreground: 210 15% 95%;
-    --popover: 210 15% 11%;
-    --popover-foreground: 210 15% 95%;
-    --primary: 217 91% 60%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 210 15% 15%;
-    --secondary-foreground: 210 15% 95%;
-    --muted: 210 15% 15%;
-    --muted-foreground: 210 15% 60%;
-    --accent: 262 83% 58%;
-    --accent-foreground: 0 0% 100%;
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 100%;
-    --border: 210 15% 20%;
-    --input: 210 15% 20%;
-    --ring: 217 91% 60%;
+    /* Minimal Dark Palette - refined slate/zinc tones */
+    --background: 220 15% 4%;     /* Almost black, very dark blue-grey */
+    --foreground: 210 20% 98%;    /* Soft white */
+    
+    --card: 220 15% 6%;           /* Slightly lighter than bg */
+    --card-foreground: 210 20% 98%;
+    
+    --popover: 220 15% 6%;
+    --popover-foreground: 210 20% 98%;
+    
+    /* Vibrant but sophisticated primary */
+    --primary: 250 95% 65%;       /* Vivid Violet/Indigo */
+    --primary-foreground: 210 20% 98%;
+    
+    --secondary: 220 15% 10%;     /* Dark grey for inputs/secondary buttons */
+    --secondary-foreground: 210 20% 80%;
+    
+    --muted: 220 15% 10%;
+    --muted-foreground: 215 15% 50%;
+    
+    --accent: 250 95% 65%;        /* Matches primary for consistency */
+    --accent-foreground: 210 20% 98%;
+    
+    --destructive: 0 85% 60%;
+    --destructive-foreground: 210 20% 98%;
+
+    /* Subtle borders */
+    --border: 220 15% 12%;
+    --input: 220 15% 12%;
+    --ring: 250 95% 65%;
+    
     --radius: 0.75rem;
   }
 }
@@ -33,7 +45,7 @@
   }
   
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased selection:bg-primary/20 selection:text-primary;
     font-feature-settings: "rlig" 1, "calt" 1;
   }
   
@@ -42,18 +54,19 @@
     scroll-behavior: smooth;
   }
   
-  /* Custom scrollbar */
+  /* Minimal Scrollbar */
   ::-webkit-scrollbar {
-    width: 10px;
+    width: 6px;
+    height: 6px;
   }
   
   ::-webkit-scrollbar-track {
-    background: hsl(var(--background));
+    background: transparent;
   }
   
   ::-webkit-scrollbar-thumb {
     background: hsl(var(--border));
-    border-radius: 5px;
+    border-radius: 9999px;
   }
   
   ::-webkit-scrollbar-thumb:hover {
@@ -62,36 +75,41 @@
 }
 
 @layer components {
-  /* Card styling */
+  /* Sleek Card styling */
   .card-modern {
-    @apply bg-card rounded-xl border border-border shadow-lg hover:shadow-xl transition-all duration-300;
+    @apply bg-card rounded-2xl border border-white/5 shadow-sm hover:shadow-md hover:border-white/10 transition-all duration-300;
   }
   
-  /* Button styles */
+  /* Refined Button styles */
   .btn-primary {
-    @apply bg-primary text-primary-foreground px-6 py-2.5 rounded-full font-semibold 
-           hover:bg-primary/90 transition-all duration-200 hover:scale-105;
+    @apply bg-primary text-white px-5 py-2 rounded-xl font-medium tracking-wide
+           hover:bg-primary/90 active:scale-[0.98] transition-all duration-200 shadow-lg shadow-primary/20;
   }
   
   .btn-secondary {
-    @apply bg-secondary text-secondary-foreground px-6 py-2.5 rounded-full font-semibold 
-           hover:bg-secondary/80 transition-all duration-200 border border-border;
+    @apply bg-secondary text-secondary-foreground px-5 py-2 rounded-xl font-medium 
+           hover:bg-secondary/80 active:scale-[0.98] transition-all duration-200 border border-white/5;
   }
   
-  /* Input styles */
+  .btn-ghost {
+    @apply hover:bg-secondary/50 text-muted-foreground hover:text-foreground px-4 py-2 rounded-xl transition-colors;
+  }
+  
+  /* Minimal Input styles */
   .input-modern {
-    @apply bg-secondary border border-border rounded-xl px-4 py-3 
-           focus:ring-2 focus:ring-primary focus:border-transparent 
-           transition-all duration-200;
+    @apply bg-secondary/50 border border-transparent rounded-xl px-4 py-2.5 
+           placeholder:text-muted-foreground/50
+           focus:bg-secondary focus:ring-1 focus:ring-primary/50 focus:border-primary/50 
+           transition-all duration-200 outline-none;
   }
   
-  /* Post card animation */
+  /* Post card animation - subtle fade up */
   .post-card {
-    @apply card-modern p-5 hover:border-primary/50 cursor-pointer;
-    animation: fadeIn 0.3s ease-in;
+    @apply card-modern p-0 overflow-hidden hover:border-primary/20 cursor-default;
+    animation: fadeUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   }
   
-  @keyframes fadeIn {
+  @keyframes fadeUp {
     from {
       opacity: 0;
       transform: translateY(10px);
@@ -104,44 +122,35 @@
   
   /* Profile card */
   .profile-card {
-    @apply card-modern p-6 text-center;
-  }
-  
-  /* Hover effects */
-  .hover-lift {
-    @apply transition-transform duration-200 hover:-translate-y-1;
+    @apply card-modern p-6 flex flex-col items-center gap-4;
   }
   
   /* Badge/Tag styles */
   .badge {
-    @apply inline-flex items-center px-3 py-1 rounded-full text-xs font-medium
-           bg-accent/10 text-accent border border-accent/20;
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium
+           bg-primary/10 text-primary border border-primary/20;
+  }
+  
+  /* Tooltip/Popover base */
+  .popover-content {
+    @apply bg-popover border border-white/10 rounded-xl shadow-xl p-4;
   }
 }
 
-/* Glassmorphism effect (optional) */
-.glass-effect {
-  background: rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+/* Utilities */
+.glass-panel {
+  @apply bg-background/60 backdrop-blur-xl border-b border-white/5;
 }
 
-/* Loading animation */
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
+.text-balance {
+  text-wrap: balance;
 }
 
-.animate-spin {
-  animation: spin 1s linear infinite;
-}
-
-/* Gradient text */
+/* Gradient text utility */
 .gradient-text {
-  background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--accent)) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  @apply bg-clip-text text-transparent bg-gradient-to-br from-white to-white/60;
+}
+
+.gradient-text-primary {
+  @apply bg-clip-text text-transparent bg-gradient-to-br from-primary via-violet-400 to-blue-400;
 }
