@@ -219,14 +219,14 @@ async function AnalyticsPage() {
         languages: (latestGitAnalysis as any)?.repoSummary?.find((rs: any) => rs.repoName === r.repoName)?.languages || [],
       })),
       latestAnalysis: latestGitAnalysis
-        ? {
+        ? JSON.parse(JSON.stringify({
             score: latestGitAnalysis.score,
             strengths: latestGitAnalysis.strengths || [],
             improvements: latestGitAnalysis.improvements || [],
             recommendation: latestGitAnalysis.recommendation || "",
             repoSummary: latestGitAnalysis.repoSummary || [],
             analyzedAt: latestGitAnalysis.analyzedAt || latestGitAnalysis.createdAt,
-          }
+          }))
         : null,
     },
   };

@@ -6,6 +6,8 @@ import { GitAnalysis } from "@/mongodb/models/gitAnalysis";
 import { User } from "@/mongodb/models/user";
 import { fetchUserCommits } from "@/lib/github";
 import { chatCompletion } from "@/lib/openrouter";
+import OpenAI from "openai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 async function fetchRepoInfo(owner: string, repo: string) {
   const res = await fetch(
@@ -104,12 +106,40 @@ Analyze the portfolio and respond with ONLY a valid JSON object (no markdown, no
 
 Be constructive. Consider: tech stack diversity, project complexity, documentation, language usage.`;
 
-    // Use OpenRouter for GitHub analysis
-    const text = await chatCompletion([
-      { role: "user", content: prompt }
-    ], {
-      temperature: 0.2,
-    });
+    // Try OpenRouter first, then Gemini, then Kimi
+    let text = "";
+    if (process.env.OPENROUTER_API_KEY) {
+      try {
+        text = await chatCompletion([{ role: "user", content: prompt }], { temperature: 0.2 });
+      } catch (e) {
+        console.warn("[Git] OpenRouter failed:", (e as Error).message?.slice(0, 80));
+      }
+    }
+    if (!text && process.env.GEMINI_API_KEY) {
+      try {
+        const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+        const model = genAI.getGenerativeModel({ model: process.env.GEMINI_MODEL || "gemini-2.0-flash" });
+        const result = await model.generateContent(prompt);
+        text = result.response.text()?.trim() ?? "";
+      } catch (e) {
+        console.warn("[Git] Gemini failed:", (e as Error).message?.slice(0, 80));
+      }
+    }
+    if (!text && process.env.KIMI_K2_API_KEY) {
+      const openai = new OpenAI({
+        apiKey: process.env.KIMI_K2_API_KEY,
+        baseURL: process.env.KIMI_BASE_URL || "https://integrate.api.nvidia.com/v1",
+      });
+      const res = await openai.chat.completions.create({
+        model: process.env.KIMI_MODEL || "moonshotai/kimi-k2.5",
+        messages: [{ role: "user", content: prompt }],
+        temperature: 0.2,
+      });
+      text = res.choices[0]?.message?.content?.trim() ?? "";
+    }
+    if (!text) {
+      return NextResponse.json({ error: "All AI providers failed. Check OpenRouter, Gemini, or Kimi API keys." }, { status: 500 });
+    }
 
     const jsonMatch = text.replace(/```json\n?|\n?```/g, "").trim();
     const parsed = JSON.parse(jsonMatch);
