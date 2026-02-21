@@ -1,5 +1,4 @@
-import OpenAI from "openai";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { chatCompletion, structuredCompletion } from "./openrouter";
 import { ResumeAnalysis } from "@/mongodb/models/resumeAnalysis";
 import { Job } from "@/mongodb/models/job";
 import { GitRepo } from "@/mongodb/models/gitRepo";
@@ -72,10 +71,6 @@ export async function runATSAnalysis(
   jobId?: string,
   uploadedResumeText?: string | null
 ): Promise<any> {
-  const kimiKey = process.env.KIMI_K2_API_KEY;
-  const geminiKey = process.env.GEMINI_API_KEY;
-  if (!kimiKey && !geminiKey) return null;
-
   const resumeText = (uploadedResumeText && uploadedResumeText.trim())
     ? uploadedResumeText.trim()
     : await buildResumeText(user, userId);
@@ -135,46 +130,13 @@ Respond with ONLY a valid JSON object (no markdown, no code blocks) with these e
 
 Set jobMatchScore, matchedSkills, missingSkills to empty arrays if not applicable.`;
 
-  const callKimi = async (): Promise<string> => {
-    if (!kimiKey) throw new Error("No Kimi key");
-    const openai = new OpenAI({
-      apiKey: kimiKey,
-      baseURL: "https://integrate.api.nvidia.com/v1",
-    });
-    const response = await openai.chat.completions.create({
-      model: process.env.KIMI_MODEL || "moonshotai/kimi-k2.5",
-      messages: [{ role: "user", content: prompt }],
-      temperature: 0.1,
-    });
-    return response.choices[0]?.message?.content?.trim() ?? "";
-  };
-
-  const callGemini = async (): Promise<string> => {
-    if (!geminiKey) throw new Error("No Gemini key");
-    const genAI = new GoogleGenerativeAI(geminiKey);
-    const model = genAI.getGenerativeModel({
-      model: process.env.GEMINI_MODEL || "gemini-2.0-flash",
-    });
-    const result = await model.generateContent(prompt);
-    return result.response.text();
-  };
-
-  // Try Gemini first (faster), fall back to Kimi on failure (rate limit etc)
-  let text: string;
-  if (geminiKey && kimiKey) {
-    try {
-      text = await callGemini();
-    } catch (e) {
-      console.warn("[ATS] Gemini failed, falling back to Kimi:", (e as Error).message?.slice(0, 100));
-      text = await callKimi();
-    }
-  } else if (geminiKey) {
-    text = await callGemini();
-  } else if (kimiKey) {
-    text = await callKimi();
-  } else {
-    throw new Error("No AI provider configured");
-  }
+  // Use OpenRouter for AI analysis
+  const text = await chatCompletion([
+    { role: "user", content: prompt }
+  ], {
+    temperature: 0.1,
+    maxTokens: 2048
+  });
 
   if (!text) throw new Error("Empty AI response");
 

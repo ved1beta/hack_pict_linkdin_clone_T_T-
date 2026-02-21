@@ -3,7 +3,7 @@
  * Weights: Skill Match 50%, Experience Match 20%, Education 10%, Keyword Density 10%, Semantic Similarity 10%
  */
 
-import OpenAI from "openai";
+import { generateEmbedding } from "../openrouter";
 import type { StructuredResume } from "./resume-structurer";
 
 export interface JobData {
@@ -184,31 +184,22 @@ function extractKeywords(text: string): string[] {
   return Array.from(new Set(words)).slice(0, 20);
 }
 
-// 4E: Semantic Similarity - OpenAI embeddings + cosine similarity
+// 4E: Semantic Similarity - OpenRouter embeddings + cosine similarity
 async function calculateSemanticSimilarity(
   jobDesc: string,
   resumeText: string
 ): Promise<number> {
-  const openaiKey = process.env.OPENAI_API_KEY;
-  if (!openaiKey) return 0.5; // fallback if no OpenAI
+  try {
+    const [jobEmb, resumeEmb] = await Promise.all([
+      generateEmbedding(jobDesc.slice(0, 8000)),
+      generateEmbedding(resumeText.slice(0, 8000)),
+    ]);
 
-  const openai = new OpenAI({ apiKey: openaiKey });
-
-  const [jobEmb, resumeEmb] = await Promise.all([
-    openai.embeddings.create({
-      model: "text-embedding-3-small",
-      input: jobDesc.slice(0, 8000),
-    }),
-    openai.embeddings.create({
-      model: "text-embedding-3-small",
-      input: resumeText.slice(0, 8000),
-    }),
-  ]);
-
-  const a = jobEmb.data[0]?.embedding ?? [];
-  const b = resumeEmb.data[0]?.embedding ?? [];
-
-  return cosineSimilarity(a, b);
+    return cosineSimilarity(jobEmb, resumeEmb);
+  } catch (error) {
+    console.error("Error calculating semantic similarity:", error);
+    return 0.5; // fallback
+  }
 }
 
 function cosineSimilarity(a: number[], b: number[]): number {

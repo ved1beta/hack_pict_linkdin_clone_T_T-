@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { chatWithProvider, getActiveProvider } from "@/lib/chat-providers";
+import { chatWithProvider } from "@/lib/chat-providers";
 import { currentUser } from "@clerk/nextjs/server";
 import connectDB from "@/mongodb/db";
 import { ParsedResume } from "@/mongodb/models/parsedResume";
@@ -74,13 +74,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const provider = getActiveProvider();
-    if (!provider) {
-      return NextResponse.json(
-        { error: "No AI provider configured. Set KIMI_K2_API_KEY, GEMINI_API_KEY, or OPENAI_API_KEY in .env.local" },
-        { status: 500 }
-      );
-    }
+    // OpenRouter is always available with hardcoded API key
 
     // Try to get user context from resume
     let resumeContext = "";
@@ -99,7 +93,7 @@ export async function POST(request: Request) {
 
     const text = await chatWithProvider(messages, systemPrompt);
 
-    return NextResponse.json({ message: text, provider });
+    return NextResponse.json({ message: text, provider: "openrouter" });
   } catch (error) {
     console.error("Chat API error:", error);
     return NextResponse.json(
