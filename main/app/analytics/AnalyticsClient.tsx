@@ -311,6 +311,7 @@ ${latestParsed?.education?.map((edu: any) => `${edu.degree} from ${edu.instituti
         resumeUploads={resumeUploads}
         atsScores={atsScoresForGraphs}
         gitRepos={git?.repos || []}
+        githubUsername={user.githubUsername}
         gitAnalysis={git?.latestAnalysis || null}
       />
 

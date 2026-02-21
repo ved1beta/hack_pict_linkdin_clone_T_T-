@@ -1,4 +1,6 @@
-import { chatCompletion, structuredCompletion } from "./openrouter";
+import OpenAI from "openai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
+import { chatCompletion } from "./openrouter";
 import { ResumeAnalysis } from "@/mongodb/models/resumeAnalysis";
 import { Job } from "@/mongodb/models/job";
 import { GitRepo } from "@/mongodb/models/gitRepo";
@@ -130,15 +132,67 @@ Respond with ONLY a valid JSON object (no markdown, no code blocks) with these e
 
 Set jobMatchScore, matchedSkills, missingSkills to empty arrays if not applicable.`;
 
-  // Use OpenRouter for AI analysis
-  const text = await chatCompletion([
-    { role: "user", content: prompt }
-  ], {
-    temperature: 0.1,
-    maxTokens: 2048
-  });
+  // Try OpenRouter first, then Gemini, then Kimi (fallbacks when OpenRouter hits spend limit)
+  let text = "";
+  const openrouterKey = process.env.OPENROUTER_API_KEY;
+  const geminiKey = process.env.GEMINI_API_KEY;
+  const kimiKey = process.env.KIMI_K2_API_KEY;
 
-  if (!text) throw new Error("Empty AI response");
+  if (openrouterKey) {
+    try {
+      text = await chatCompletion(
+        [{ role: "user", content: prompt }],
+        { temperature: 0.1, maxTokens: 2048 }
+      );
+    } catch (e) {
+      console.warn("[ATS] OpenRouter failed, trying Gemini/Kimi:", (e as Error).message?.slice(0, 80));
+    }
+  }
+
+  if (!text && geminiKey) {
+    try {
+      const genAI = new GoogleGenerativeAI(geminiKey);
+      const model = genAI.getGenerativeModel({
+        model: process.env.GEMINI_MODEL || "gemini-2.0-flash",
+      });
+      const result = await model.generateContent(prompt);
+      text = result.response.text()?.trim() ?? "";
+    } catch (e) {
+      console.warn("[ATS] Gemini failed, trying Kimi:", (e as Error).message?.slice(0, 80));
+    }
+  }
+
+  if (!text && kimiKey) {
+    const trimmedKey = kimiKey.trim();
+    const baseUrl = (process.env.KIMI_BASE_URL || "https://integrate.api.nvidia.com/v1").trim();
+    const isMoonshot = baseUrl.includes("api.moonshot");
+    const model = process.env.KIMI_MODEL || (isMoonshot ? "kimi-k2-turbo-preview" : "moonshotai/kimi-k2.5");
+    try {
+      const openai = new OpenAI({ apiKey: trimmedKey, baseURL: baseUrl });
+      const response = await openai.chat.completions.create({
+        model,
+        messages: [{ role: "user", content: prompt }],
+        temperature: 0.1,
+      });
+      text = response.choices[0]?.message?.content?.trim() ?? "";
+    } catch (e) {
+      if (baseUrl.includes("api.moonshot.ai") && (e as any)?.status === 401) {
+        console.warn("[ATS] Moonshot .ai returned 401, trying .cn (China platform)");
+        try {
+          const openaiCn = new OpenAI({ apiKey: trimmedKey, baseURL: "https://api.moonshot.cn/v1" });
+          const res = await openaiCn.chat.completions.create({
+            model: process.env.KIMI_MODEL || "kimi-k2-turbo-preview",
+            messages: [{ role: "user", content: prompt }],
+            temperature: 0.1,
+          });
+          text = res.choices[0]?.message?.content?.trim() ?? "";
+        } catch {}
+      }
+      if (!text) throw e;
+    }
+  }
+
+  if (!text) throw new Error("All AI providers failed (OpenRouter, Gemini, Kimi). Check API keys and limits.");
 
   const jsonMatch = text.replace(/```json\n?|\n?```/g, "").trim();
   const parsed = JSON.parse(jsonMatch);
